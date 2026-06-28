@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* ─── CSS Custom Properties (Design System Tokens) ──────────────────────────── */
+:root {
+  /* Dark mode palette — zinc-based */
+  --background: #09090b;        /* zinc-950 */
+  --surface: #18181b;           /* zinc-900 */
+  --surface-elevated: #27272a;  /* zinc-800 */
+  --border: #3f3f46;            /* zinc-700 */
+  --border-subtle: #27272a;     /* zinc-800 */
+
+  --text-primary: #fafafa;      /* zinc-50 */
+  --text-secondary: #a1a1aa;    /* zinc-400 */
+  --text-muted: #71717a;        /* zinc-500 */
+
+  /* Accent — cyan */
+  --accent: #22d3ee;            /* cyan-400 */
+  --accent-hover: #06b6d4;      /* cyan-500 */
+  --accent-muted: #164e63;      /* cyan-900 */
+  --accent-text: #cffafe;       /* cyan-50 */
+
+  /* Status */
+  --success: #4ade80;           /* green-400 */
+  --success-bg: #14532d;        /* green-950 */
+  --error: #f87171;             /* red-400 */
+  --error-bg: #450a0a;          /* red-950 */
+  --warning: #fb923c;           /* orange-400 */
+  --warning-bg: #431407;        /* orange-950 */
+
+  /* Radius — 4px base, never full-round on non-toggle */
+  --radius: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 0.875rem;   /* 14px — design.md body size */
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Domain names always in JetBrains Mono (design.md requirement) */
+.domain-name,
+[data-domain] {
+  font-family: var(--font-jetbrains-mono), var(--font-geist-mono), "DM Mono", monospace;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ─── Focus ──────────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: none;
+}
+
+/* ─── Animations (ease-out only, no bounce) ─────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms ease-out forwards;
+}
+
+.animate-skeleton {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in {
+  animation: slide-in 180ms ease-out forwards;
+}
