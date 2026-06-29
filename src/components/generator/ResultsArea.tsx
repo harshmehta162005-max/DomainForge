@@ -363,14 +363,19 @@ export function ResultsArea({
 
         {/* Metadata footer */}
         {phase === "done" && suggestions.length > 0 && (
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-800/60">
-            <p className="text-xs text-zinc-700">
-              {suggestions.length} names generated · {suggestions.filter(s => s.availabilityStatus === "available").length} available
-            </p>
-            <div className="flex items-center gap-1 text-xs text-zinc-700">
-              <SlidersHorizontal className="h-3 w-3" strokeWidth={1.5} />
-              Adjust controls and regenerate for new results
+          <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-zinc-800/60">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-zinc-700">
+                {suggestions.length} names generated · {suggestions.filter(s => s.availabilityStatus === "available").length} available
+              </p>
+              <div className="flex items-center gap-1 text-xs text-zinc-700">
+                <SlidersHorizontal className="h-3 w-3" strokeWidth={1.5} />
+                Adjust controls and regenerate for new results
+              </div>
             </div>
+            <p className="text-[10px] text-zinc-500 text-center uppercase tracking-wider mt-1">
+              * Availability is not a trademark or legal clearance check.
+            </p>
           </div>
         )}
       </div>

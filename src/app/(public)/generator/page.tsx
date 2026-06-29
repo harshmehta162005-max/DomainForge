@@ -8,11 +8,13 @@ import {
 import { cn } from "@/lib/utils"
 import { useGenerate } from "@/hooks/use-generate"
 import type { DomainSuggestion } from "@/types/domain"
+import { TONE_PRESET_SLIDERS, type TonePreset } from "@/types/domain"
 import {
   PromptBox,
   CategoryPicker,
   StyleSliders,
   AdvancedOptions,
+  TonePresets,
 } from "@/components/generator/StudioControls"
 import { GenerateButton } from "@/components/generator/GenerateButton"
 import { ResultsArea } from "@/components/generator/ResultsArea"
@@ -31,6 +33,7 @@ interface SessionState {
   description: string
   categories: string[]
   targetAudience: string
+  tonePreset: TonePreset | undefined
   sliders: SliderValues
   tlds: string[]
   namingStyles: string[]
@@ -43,7 +46,8 @@ const DEFAULT_STATE: SessionState = {
   description: "",
   categories: ["Tech"],
   targetAudience: "",
-  sliders: { modern: 70, professional: 60, brandable: 75, short: 70 },
+  tonePreset: "bold",
+  sliders: TONE_PRESET_SLIDERS.bold,
   tlds: [".com", ".io", ".ai"],
   namingStyles: [],
   maxLength: 12,
@@ -81,9 +85,8 @@ export default function GeneratorPage() {
   const [shortlist, setShortlist] = useState<DomainSuggestion[]>([])
   const hasLoaded = useRef(false)
 
-  const { phase, suggestions, error, generate, reset } = useGenerate()
+  const { phase, suggestions, error, generate, reset, fallbackTriggered } = useGenerate()
 
-  // Load session from localStorage on mount
   useEffect(() => {
     if (!hasLoaded.current) {
       setSession(loadSession())
@@ -91,7 +94,6 @@ export default function GeneratorPage() {
     }
   }, [])
 
-  // Persist session on change
   useEffect(() => {
     if (hasLoaded.current) {
       saveSession(session)
@@ -106,6 +108,18 @@ export default function GeneratorPage() {
     setSession(prev => ({ ...prev, sliders: { ...prev.sliders, [key]: value } }))
   }, [])
 
+  const updateTonePreset = useCallback((preset: string) => {
+    setSession(prev => {
+      const p = preset as TonePreset | undefined
+      if (!p) return { ...prev, tonePreset: undefined }
+      const newSliders = TONE_PRESET_SLIDERS[p]
+      if (newSliders) {
+        return { ...prev, tonePreset: p, sliders: newSliders }
+      }
+      return prev
+    })
+  }, [])
+
   const handleGenerate = useCallback(() => {
     const desc = session.description.trim()
     if (!desc || desc.length < 2) return
@@ -114,13 +128,16 @@ export default function GeneratorPage() {
       businessDescription: desc,
       categories: session.categories.length > 0 ? session.categories : ["General"],
       targetAudience: session.targetAudience || "startups and entrepreneurs",
+      tonePreset: session.tonePreset,
       preferences: session.sliders,
       tlds: session.tlds.length > 0 ? session.tlds : [".com", ".io", ".ai"],
       count: session.count,
+      maxLength: session.maxLength,
+      excludeWords: session.excludeWords,
+      namingStyles: session.namingStyles,
     })
   }, [session, generate])
 
-  // Keyboard shortcut: Ctrl/Cmd + Enter
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -143,10 +160,8 @@ export default function GeneratorPage() {
     // toast handled inside DomainResultCard
   }, [])
 
-  // Fill description from the idle-state example prompt cards
   const handlePickPrompt = useCallback((prompt: string) => {
     updateSession("description", prompt)
-    // On mobile: open the sidebar so user can see the filled prompt
     setSidebarOpen(true)
   }, [updateSession])
 
@@ -193,7 +208,6 @@ export default function GeneratorPage() {
             </span>
           )}
 
-          {/* Dashboard link */}
           <Link
             href="/dashboard"
             className="h-8 px-3 flex items-center gap-1.5 rounded-[4px] bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
@@ -202,7 +216,6 @@ export default function GeneratorPage() {
             <span className="hidden sm:block">Dashboard</span>
           </Link>
 
-          {/* Mobile sidebar toggle */}
           <button
             onClick={() => setSidebarOpen(p => !p)}
             className="h-8 w-8 flex items-center justify-center rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-100 transition-colors duration-150 lg:hidden"
@@ -219,7 +232,6 @@ export default function GeneratorPage() {
         <aside className={cn(
           "flex-shrink-0 border-r border-zinc-800 bg-zinc-900/50 overflow-y-auto overflow-x-hidden",
           "transition-all duration-200 ease-out",
-          // Desktop: always visible, collapsible width
           "hidden lg:flex lg:flex-col",
           sidebarOpen ? "lg:w-80 xl:w-96" : "lg:w-0 lg:overflow-hidden lg:border-0",
         )}>
@@ -250,10 +262,10 @@ export default function GeneratorPage() {
               />
             </div>
 
-            {/* Style sliders */}
-            <StyleSliders
-              values={session.sliders}
-              onChange={updateSlider}
+            {/* Tone presets */}
+            <TonePresets
+              selected={session.tonePreset}
+              onChange={updateTonePreset}
             />
 
             {/* Advanced options (collapsible) */}
@@ -269,18 +281,27 @@ export default function GeneratorPage() {
                 }
               </button>
               {advancedOpen && (
-                <AdvancedOptions
-                  tlds={session.tlds}
-                  onTldsChange={v => updateSession("tlds", v)}
-                  namingStyles={session.namingStyles}
-                  onNamingStylesChange={v => updateSession("namingStyles", v)}
-                  maxLength={session.maxLength}
-                  onMaxLengthChange={v => updateSession("maxLength", v)}
-                  excludeWords={session.excludeWords}
-                  onExcludeWordsChange={v => updateSession("excludeWords", v)}
-                  count={session.count}
-                  onCountChange={v => updateSession("count", v)}
-                />
+                <div className="space-y-5 mt-4">
+                  <StyleSliders
+                    values={session.sliders}
+                    onChange={(k, v) => {
+                      updateSlider(k, v)
+                      updateSession("tonePreset", undefined) // custom slider breaks preset
+                    }}
+                  />
+                  <AdvancedOptions
+                    tlds={session.tlds}
+                    onTldsChange={v => updateSession("tlds", v)}
+                    namingStyles={session.namingStyles}
+                    onNamingStylesChange={v => updateSession("namingStyles", v)}
+                    maxLength={session.maxLength}
+                    onMaxLengthChange={v => updateSession("maxLength", v)}
+                    excludeWords={session.excludeWords}
+                    onExcludeWordsChange={v => updateSession("excludeWords", v)}
+                    count={session.count}
+                    onCountChange={v => updateSession("count", v)}
+                  />
+                </div>
               )}
             </div>
 
@@ -295,14 +316,19 @@ export default function GeneratorPage() {
               {error && (
                 <p className="text-xs text-red-400 mt-2 text-center">{error}</p>
               )}
-              <p className="text-xs text-zinc-700 text-center mt-2">
+              <p className="text-[10px] text-zinc-500 text-center mt-3 px-2 leading-tight">
+                DomainForge never registers, resells, or shares the names you search for.
+              </p>
+              <p className="text-[9px] text-zinc-600 text-center mt-1 px-2 leading-tight">
+                We may earn an affiliate commission on domain purchases.
+              </p>
+              <p className="text-[10px] text-zinc-700 text-center mt-1">
                 Ctrl+Enter to generate
               </p>
             </div>
           </div>
         </aside>
 
-        {/* Sidebar collapse toggle (desktop) */}
         <button
           onClick={() => setSidebarOpen(p => !p)}
           className="hidden lg:flex items-center justify-center w-4 hover:bg-zinc-800 border-r border-zinc-800 text-zinc-700 hover:text-zinc-400 transition-colors duration-150 flex-shrink-0"
@@ -324,8 +350,8 @@ export default function GeneratorPage() {
             categories={session.categories}
             description={session.description}
             onPickPrompt={handlePickPrompt}
+            fallbackTriggered={fallbackTriggered}
           >
-            {/* ResultsArea renders the toolbar + grid below the hero */}
             <ResultsArea
               suggestions={suggestions}
               phase={phase}
@@ -343,7 +369,6 @@ export default function GeneratorPage() {
         <div className="lg:hidden fixed inset-0 z-30 flex flex-col justify-end">
           <div className="absolute inset-0 bg-zinc-950/80" onClick={() => setSidebarOpen(false)} />
           <div className="relative bg-zinc-900 border-t border-zinc-700 rounded-t-[6px] max-h-[85vh] overflow-y-auto">
-            {/* Drag handle */}
             <div className="flex justify-center pt-2 pb-1">
               <div className="w-8 h-1 bg-zinc-700 rounded-full" />
             </div>
@@ -356,16 +381,23 @@ export default function GeneratorPage() {
                 selected={session.categories}
                 onChange={v => updateSession("categories", v)}
               />
-              <StyleSliders
-                values={session.sliders}
-                onChange={updateSlider}
+              <TonePresets
+                selected={session.tonePreset}
+                onChange={updateTonePreset}
               />
+              {/* Not rendering advanced in mobile bottom sheet to keep it brief */}
               <GenerateButton
                 onClick={() => { handleGenerate(); setSidebarOpen(false) }}
                 loading={isGenerating}
                 phase={phase}
                 disabled={!canGenerate}
               />
+              <p className="text-[10px] text-zinc-500 text-center mt-3 px-2 leading-tight">
+                DomainForge never registers, resells, or shares the names you search for.
+              </p>
+              <p className="text-[9px] text-zinc-600 text-center mt-1 px-2 leading-tight">
+                We may earn an affiliate commission on domain purchases.
+              </p>
             </div>
           </div>
         </div>

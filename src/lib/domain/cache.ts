@@ -52,6 +52,8 @@ export async function getCachedAvailability(
       status: row.status as AvailabilityResult["status"],
       checkedAt: row.checked_at,
       fromCache: true,
+      rdapTier: "tier1", // Dummy value, overwritten by caller
+      isParked: false,   // Ignored on cache miss, assumed false if not tracked in DB
     }
   } catch {
     // Never crash the calling code on cache failure

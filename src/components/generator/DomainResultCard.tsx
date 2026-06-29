@@ -2,46 +2,75 @@
 
 import { cn } from "@/lib/utils"
 import { ExternalLink, Star, Eye, Copy, Check, RefreshCw, TrendingUp } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { DomainSuggestion } from "@/types/domain"
 import { createClient } from "@/lib/supabase/client"
 
 // ─── Availability badge ───────────────────────────────────────────────────────
 
-function AvailBadge({ status }: { status: string }) {
+function AvailBadge({ suggestion }: { suggestion: DomainSuggestion }) {
+  const { availabilityStatus: status, rdapTier, isParked } = suggestion
   const cfg: Record<string, { cls: string; label: string }> = {
     available: { cls: "bg-green-950 text-green-400 border-green-800", label: "Available" },
     taken:     { cls: "bg-red-950 text-red-400 border-red-800",       label: "Taken" },
     premium:   { cls: "bg-orange-950 text-orange-400 border-orange-800", label: "Premium" },
+    parked:    { cls: "bg-amber-950 text-amber-400 border-amber-800", label: "Parked" },
+    unverified:{ cls: "bg-yellow-950 text-yellow-400 border-yellow-800", label: "Unverified" },
     unknown:   { cls: "bg-zinc-800 text-zinc-400 border-zinc-700",    label: "Unknown" },
     checking:  { cls: "bg-zinc-800 text-zinc-400 border-zinc-700",    label: "Checking…" },
   }
   const c = cfg[status] ?? cfg.unknown
   return (
-    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded-[2px] border text-xs font-medium", c.cls)}>
-      {status === "checking" && <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" />}
-      {c.label}
-    </span>
+    <div className="flex items-center gap-1.5">
+      <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded-[2px] border text-[10px] uppercase tracking-wider font-medium", c.cls)}>
+        {status === "checking" && <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" />}
+        {c.label}
+      </span>
+      {status !== "checking" && rdapTier === "tier2" && (
+        <span className="text-[10px] text-zinc-500 hidden sm:inline" title="Verified via registry">Registry Verified</span>
+      )}
+      {status !== "checking" && rdapTier === "tier3" && (
+        <span className="text-[10px] text-yellow-500 hidden sm:inline" title="Confirm manually on registry">Confirm on registry</span>
+      )}
+    </div>
   )
 }
 
 // ─── Score bar ───────────────────────────────────────────────────────────────
 
-function ScoreBar({ score }: { score: number }) {
+function ScoreBarWithBreakdown({ suggestion }: { suggestion: DomainSuggestion }) {
+  const { score, scoreBreakdown } = suggestion
   const color = score >= 80 ? "bg-green-400" : score >= 60 ? "bg-cyan-400" : "bg-zinc-500"
+  
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
-        <div
-          className={cn("h-full rounded-full transition-all duration-500 ease-out", color)}
-          style={{ width: `${score}%` }}
-        />
+    <div className="group/score relative">
+      <div className="flex items-center gap-2 cursor-help">
+        <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
+          <div
+            className={cn("h-full rounded-full transition-all duration-500 ease-out", color)}
+            style={{ width: `${score}%` }}
+          />
+        </div>
+        <span className={cn("text-xs font-mono tabular-nums font-medium",
+          score >= 80 ? "text-green-400" : score >= 60 ? "text-cyan-400" : "text-zinc-500"
+        )}>
+          {score}
+        </span>
       </div>
-      <span className={cn("text-xs font-mono tabular-nums font-medium",
-        score >= 80 ? "text-green-400" : score >= 60 ? "text-cyan-400" : "text-zinc-500"
-      )}>
-        {score}
-      </span>
+      
+      {/* Tooltip */}
+      {scoreBreakdown && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-zinc-800 border border-zinc-700 rounded-md shadow-xl opacity-0 group-hover/score:opacity-100 pointer-events-none transition-opacity duration-150 z-10 text-xs">
+          <div className="space-y-1.5">
+            <div className="flex justify-between"><span className="text-zinc-400">Brandability</span><span className="text-zinc-200">{scoreBreakdown.brandability}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">Typeability</span><span className="text-zinc-200">{scoreBreakdown.typeability}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">Relevance</span><span className="text-zinc-200">{scoreBreakdown.keywordRelevance}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">TLD Trust</span><span className="text-zinc-200">{scoreBreakdown.tldTrust}</span></div>
+          </div>
+          {/* Triangle */}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-zinc-700" />
+        </div>
+      )}
     </div>
   )
 }
@@ -64,6 +93,53 @@ function CopyBtn({ text }: { text: string }) {
     >
       {copied ? <Check className="h-3 w-3" strokeWidth={1.5} /> : <Copy className="h-3 w-3" strokeWidth={1.5} />}
     </button>
+  )
+}
+
+// ─── Social Handles ──────────────────────────────────────────────────────────
+
+function SocialHandlesInline({ suggestion }: { suggestion: DomainSuggestion }) {
+  const [handles, setHandles] = useState(suggestion.socialHandles)
+  const [loading, setLoading] = useState(!suggestion.socialHandles)
+  
+  useEffect(() => {
+    if (handles) return
+    let mounted = true
+    fetch('/api/social-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: suggestion.domain, baseName: suggestion.baseName })
+    }).then(r => r.json()).then(data => {
+      if (mounted && data.twitter) {
+        setHandles(data)
+        setLoading(false)
+      }
+    }).catch(() => {
+      if (mounted) setLoading(false)
+    })
+    return () => { mounted = false }
+  }, [suggestion, handles])
+
+  if (loading) {
+    return <div className="text-[10px] text-zinc-600 animate-pulse mt-2 pt-2 border-t border-zinc-800/60">Checking socials...</div>
+  }
+  if (!handles) return null
+
+  const twColor = handles.twitter?.status === "available" ? "text-green-400" : handles.twitter?.status === "taken" ? "text-red-400" : "text-zinc-500"
+  const igColor = handles.instagram?.status === "available" ? "text-green-400" : handles.instagram?.status === "taken" ? "text-red-400" : "text-zinc-500"
+
+  return (
+    <div className="flex items-center gap-3 mt-2 pt-2 border-t border-zinc-800/60">
+      <span className="text-[10px] text-zinc-500 cursor-help" title="Exact-match availability can't be guaranteed across all platforms (best effort).">Socials:</span>
+      <div className="flex items-center gap-1 cursor-help" title={`X (Twitter): ${handles.twitter?.status}`}>
+        <span className={cn("font-bold", twColor)}>X</span>
+        <span className={cn("text-[10px]", twColor)}>{handles.twitter?.status === "available" ? "✓" : handles.twitter?.status === "taken" ? "×" : "?"}</span>
+      </div>
+      <div className="flex items-center gap-1 cursor-help" title={`Instagram: ${handles.instagram?.status}`}>
+        <span className={cn("font-bold", igColor)}>IG</span>
+        <span className={cn("text-[10px]", igColor)}>{handles.instagram?.status === "available" ? "✓" : handles.instagram?.status === "taken" ? "×" : "?"}</span>
+      </div>
+    </div>
   )
 }
 
@@ -92,7 +168,6 @@ export function DomainResultCard({
     setWatchlisting(true)
     setWatchlistError(null)
     try {
-      // Check auth client-side first
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -113,16 +188,13 @@ export function DomainResultCard({
         setWatchlisted(true)
         onWatchlist(suggestion)
       } else {
-        // Surface the real error so we can debug it
         const data = await res.json().catch(() => ({})) as { error?: string; detail?: string }
         const msg = data.detail ?? data.error ?? `HTTP ${res.status}`
         setWatchlistError(msg)
-        console.error("[Watch] API error:", msg)
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Network error"
       setWatchlistError(msg)
-      console.error("[Watch] fetch failed:", msg)
     } finally {
       setWatchlisting(false)
     }
@@ -138,12 +210,12 @@ export function DomainResultCard({
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <span className="font-mono text-zinc-100 font-medium text-sm whitespace-nowrap">{suggestion.domain}</span>
           <CopyBtn text={suggestion.domain} />
-          <AvailBadge status={suggestion.availabilityStatus} />
+          <AvailBadge suggestion={suggestion} />
         </div>
 
         {/* Score */}
         <div className="w-20 hidden sm:block">
-          <ScoreBar score={suggestion.score} />
+          <ScoreBarWithBreakdown suggestion={suggestion} />
         </div>
 
         {/* Style */}
@@ -218,35 +290,43 @@ export function DomainResultCard({
           <span className="font-mono text-zinc-100 font-semibold text-base leading-tight truncate">{suggestion.domain}</span>
           <CopyBtn text={suggestion.domain} />
         </div>
-        <AvailBadge status={suggestion.availabilityStatus} />
+        <AvailBadge suggestion={suggestion} />
       </div>
 
-      {/* Score */}
-      <div className="space-y-1">
+      {/* Score & Style */}
+      <div className="space-y-1 mt-1">
         <div className="flex items-center justify-between">
           <span className="text-xs text-zinc-600 flex items-center gap-1">
             <TrendingUp className="h-3 w-3" strokeWidth={1.5} /> AI Score
           </span>
           <span className="text-xs text-zinc-500 capitalize">{suggestion.style}</span>
         </div>
-        <ScoreBar score={suggestion.score} />
+        <ScoreBarWithBreakdown suggestion={suggestion} />
       </div>
 
-      {/* Price estimate */}
-      {suggestion.priceEstimate && (
-        <div className="flex items-center gap-1.5">
+      {/* Price estimate for parked or premium/normal */}
+      {suggestion.isParked ? (
+        <div className="flex items-center gap-1.5 mt-1">
+          <span className="text-xs text-amber-500">Parked estimate:</span>
+          <span className="text-xs font-mono font-medium text-amber-400/80">{suggestion.parkedPriceEstimate || "Unknown"}</span>
+        </div>
+      ) : suggestion.priceEstimate ? (
+        <div className="flex items-center gap-1.5 mt-1">
           <span className="text-xs text-zinc-600">Est. price:</span>
           <span className="text-xs font-mono font-medium text-cyan-400/80">{suggestion.priceEstimate}</span>
         </div>
-      )}
+      ) : null}
 
       {/* Explanation */}
-      <p className="text-xs text-zinc-500 leading-relaxed line-clamp-2">
+      <p className="text-xs text-zinc-500 leading-relaxed line-clamp-2 mt-1">
         {suggestion.explanation}
       </p>
 
+      {/* Social Handles */}
+      <SocialHandlesInline suggestion={suggestion} />
+
       {/* Actions */}
-      <div className="flex items-center gap-1.5 mt-auto pt-1">
+      <div className="flex items-center gap-1.5 mt-auto pt-2">
         <button
           onClick={() => onShortlist(suggestion)}
           title={isShortlisted ? "In shortlist" : "Add to shortlist"}

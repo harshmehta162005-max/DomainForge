@@ -149,6 +149,15 @@ export default function HomePageClient() {
           className="absolute bottom-0 left-0 right-0 p-6 md:px-12 z-10"
           style={{ animation: "fade-in 1s ease-out 1s backwards" }}
         >
+          <div className="max-w-2xl mx-auto mb-6 p-4 bg-gray-800/40 border border-gray-700/50 rounded-lg backdrop-blur-sm text-center">
+            <p className="text-xs text-gray-300 font-medium tracking-wide uppercase mb-1.5">
+              Smart Availability Routing
+            </p>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Featuring our <span className="text-gray-200 font-medium">3-Tier Availability Check</span>: Verified registry checks for major TLDs, standard lookups for other gTLDs, and intelligent fallback for unverified ccTLDs.
+            </p>
+          </div>
+
           <p className="text-center text-gray-600 text-xs mb-3 uppercase tracking-widest">
             Checks availability across
           </p>

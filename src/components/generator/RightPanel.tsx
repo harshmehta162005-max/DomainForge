@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import type { ReactNode } from "react"
 import { motion, AnimatePresence, type Variants } from "framer-motion"
 import {
   Copy, Check, Star, ExternalLink, Zap, Lightbulb,
@@ -98,12 +99,13 @@ function HeroBadge({ status }: { status: string }) {
 
 // ─── Score ring ───────────────────────────────────────────────────────────────
 
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({ suggestion }: { suggestion: DomainSuggestion }) {
+  const { score, scoreBreakdown } = suggestion
   const r = 20
   const circ = 2 * Math.PI * r
   const color = score >= 80 ? "#4ade80" : score >= 60 ? "#22d3ee" : "#71717a"
   return (
-    <div className="relative w-14 h-14 flex items-center justify-center flex-shrink-0">
+    <div className="group/hero relative w-14 h-14 flex items-center justify-center flex-shrink-0 cursor-help">
       <svg className="absolute inset-0 -rotate-90" width="56" height="56">
         <circle cx="28" cy="28" r={r} fill="none" stroke="#27272a" strokeWidth="3" />
         <motion.circle
@@ -116,6 +118,20 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <span className="text-xs font-mono font-bold text-zinc-200 z-10">{score}</span>
+      
+      {/* Tooltip */}
+      {scoreBreakdown && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-3 bg-zinc-800 border border-zinc-700 rounded-md shadow-xl opacity-0 group-hover/hero:opacity-100 pointer-events-none transition-opacity duration-150 z-20 text-xs text-left">
+          <div className="space-y-1.5">
+            <div className="flex justify-between"><span className="text-zinc-400">Brandability</span><span className="text-zinc-200 font-mono">{scoreBreakdown.brandability}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">Typeability</span><span className="text-zinc-200 font-mono">{scoreBreakdown.typeability}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">Relevance</span><span className="text-zinc-200 font-mono">{scoreBreakdown.keywordRelevance}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">TLD Trust</span><span className="text-zinc-200 font-mono">{scoreBreakdown.tldTrust}</span></div>
+          </div>
+          {/* Triangle */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-px border-4 border-transparent border-b-zinc-700" />
+        </div>
+      )}
     </div>
   )
 }
@@ -201,7 +217,7 @@ function HeroDomain({ suggestion, isShortlisted, onShortlist, onFirstShortlist }
             <HeroBadge status={suggestion.availabilityStatus} />
           </div>
           <div className="flex items-center gap-3">
-            <ScoreRing score={suggestion.score} />
+            <ScoreRing suggestion={suggestion} />
             <div>
               <p className="text-xs text-zinc-500 mb-0.5 uppercase tracking-wider font-medium">AI Score</p>
               <p className="text-xs text-zinc-400 capitalize">{suggestion.style} · {suggestion.tld}</p>
@@ -635,7 +651,8 @@ interface RightPanelProps {
   categories: string[]
   description: string
   onPickPrompt: (p: string) => void
-  children: React.ReactNode
+  fallbackTriggered?: boolean
+  children: ReactNode
 }
 
 export function RightPanel({
@@ -646,6 +663,7 @@ export function RightPanel({
   categories,
   description,
   onPickPrompt,
+  fallbackTriggered,
   children,
 }: RightPanelProps) {
   const isLoading    = phase === "generating" || phase === "checking"
@@ -732,6 +750,12 @@ export function RightPanel({
                     onShortlist={onShortlist}
                     onFirstShortlist={handleFirstShortlist}
                   />
+                  {fallbackTriggered && (
+                    <div className="mt-4 p-2 bg-yellow-950/30 border border-yellow-900/50 rounded-[4px] flex items-center justify-center gap-2 text-yellow-400/80">
+                      <Lightbulb className="h-3.5 w-3.5" strokeWidth={1.5} />
+                      <span className="text-xs font-medium">We expanded your filters to find these names.</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

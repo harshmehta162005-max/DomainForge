@@ -95,6 +95,45 @@ export function CategoryPicker({ selected, onChange }: CategoryPickerProps) {
   )
 }
 
+// ─── TonePresets ─────────────────────────────────────────────────────────────
+
+interface TonePresetsProps {
+  selected?: string
+  onChange: (tone: string) => void
+}
+
+const TONES = ["playful", "corporate", "minimal", "bold", "technical"]
+
+export function TonePresets({ selected, onChange }: TonePresetsProps) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider">
+        Tone
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        {TONES.map(tone => {
+          const active = selected === tone
+          return (
+            <button
+              key={tone}
+              type="button"
+              onClick={() => onChange(active ? "" : tone)}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-[4px] border font-medium capitalize transition-all duration-100",
+                active
+                  ? "bg-cyan-950/70 border-cyan-800 text-cyan-400"
+                  : "bg-zinc-900 border-zinc-700 text-zinc-500 hover:text-zinc-200 hover:border-zinc-600"
+              )}
+            >
+              {tone}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── StyleSliders ─────────────────────────────────────────────────────────────
 
 const SLIDERS = [

@@ -6,10 +6,39 @@ export const AvailabilityStatusSchema = z.enum([
   "available",
   "taken",
   "premium",
+  "parked",      // v2.0: parked / for-resale domain
   "unknown",
+  "unverified",  // v2.0: Tier 3 ccTLD — confirm on registry
   "checking",
 ])
 export type AvailabilityStatus = z.infer<typeof AvailabilityStatusSchema>
+
+// ─── RDAP Tier ────────────────────────────────────────────────────────────────
+
+export type RdapTier = "tier1" | "tier2" | "tier3"
+
+// ─── Score Breakdown ──────────────────────────────────────────────────────────
+
+export interface ScoreBreakdown {
+  brandability: number      // 0–100: invented name, no generic meaning
+  typeability: number       // 0–100: easy to type / short length
+  keywordRelevance: number  // 0–100: matches business description
+  tldTrust: number          // 0–100: TLD credibility (com > xyz)
+}
+
+// ─── Social Handle ────────────────────────────────────────────────────────────
+
+export type HandleStatus = "available" | "taken" | "unknown"
+
+export interface SocialHandle {
+  handle: string    // e.g. "@brewly"
+  status: HandleStatus
+}
+
+export interface SocialHandles {
+  twitter?: SocialHandle
+  instagram?: SocialHandle
+}
 
 // ─── Domain Suggestion ────────────────────────────────────────────────────────
 
@@ -19,7 +48,16 @@ export const DomainSuggestionSchema = z.object({
   tld: z.string(),             // ".ai"
   available: z.boolean(),
   availabilityStatus: AvailabilityStatusSchema,
+  rdapTier: z.enum(["tier1", "tier2", "tier3"]).default("tier1"),  // v2.0
+  isParked: z.boolean().default(false),                             // v2.0
+  parkedPriceEstimate: z.string().nullable().default(null),         // v2.0: e.g. "$1,000–$5,000"
   score: z.number().min(0).max(100),
+  scoreBreakdown: z.object({   // v2.0: decomposed score
+    brandability: z.number().min(0).max(100),
+    typeability: z.number().min(0).max(100),
+    keywordRelevance: z.number().min(0).max(100),
+    tldTrust: z.number().min(0).max(100),
+  }).nullable().default(null),
   explanation: z.string(),
   style: z.enum(["brandable", "compound", "invented", "keyword", "alliteration"]),
   priceEstimate: z.string().nullable(),
@@ -27,8 +65,33 @@ export const DomainSuggestionSchema = z.object({
     namecheap: z.string().url().optional(),
     godaddy: z.string().url().optional(),
   }),
+  socialHandles: z.object({   // v2.0: inline social availability
+    twitter: z.object({ handle: z.string(), status: z.enum(["available", "taken", "unknown"]) }).optional(),
+    instagram: z.object({ handle: z.string(), status: z.enum(["available", "taken", "unknown"]) }).optional(),
+  }).nullable().default(null),
 })
 export type DomainSuggestion = z.infer<typeof DomainSuggestionSchema>
+
+// ─── Tone Preset ─────────────────────────────────────────────────────────────
+
+export const TonePresetSchema = z.enum([
+  "playful",
+  "corporate",
+  "minimal",
+  "bold",
+  "technical",
+])
+export type TonePreset = z.infer<typeof TonePresetSchema>
+
+export const TONE_PRESET_SLIDERS: Record<TonePreset, {
+  modern: number; professional: number; brandable: number; short: number
+}> = {
+  playful:    { modern: 65, professional: 30, brandable: 80, short: 75 },
+  corporate:  { modern: 50, professional: 90, brandable: 40, short: 60 },
+  minimal:    { modern: 80, professional: 70, brandable: 60, short: 90 },
+  bold:       { modern: 85, professional: 55, brandable: 85, short: 65 },
+  technical:  { modern: 75, professional: 75, brandable: 50, short: 70 },
+}
 
 // ─── Generation Request ───────────────────────────────────────────────────────
 
@@ -62,6 +125,7 @@ export const GenerationResponseSchema = z.object({
     totalGenerated: z.number(),
     cached: z.number(),
     sessionId: z.string(),
+    fallbackTriggered: z.boolean().default(false),
   }),
 })
 export type GenerationResponse = z.infer<typeof GenerationResponseSchema>
@@ -71,6 +135,8 @@ export type GenerationResponse = z.infer<typeof GenerationResponseSchema>
 export const AvailabilityResultSchema = z.object({
   available: z.boolean(),
   status: AvailabilityStatusSchema,
+  rdapTier: z.enum(["tier1", "tier2", "tier3"]).default("tier1"),
+  isParked: z.boolean().default(false),
   checkedAt: z.string(),
   fromCache: z.boolean(),
 })

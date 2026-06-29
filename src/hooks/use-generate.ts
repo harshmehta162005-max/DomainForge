@@ -17,6 +17,7 @@ export interface GenerateState {
   suggestions: DomainSuggestion[]
   error: string | null
   totalGenerated: number
+  fallbackTriggered: boolean
 }
 
 export interface GenerateOptions {
@@ -24,6 +25,7 @@ export interface GenerateOptions {
   categories?: string[]
   targetAudience?: string
   problemSolved?: string
+  tonePreset?: "playful" | "corporate" | "minimal" | "bold" | "technical"
   preferences?: {
     modern?: number
     cool?: number
@@ -35,6 +37,9 @@ export interface GenerateOptions {
   }
   tlds?: string[]
   count?: number
+  maxLength?: number
+  excludeWords?: string[]
+  namingStyles?: string[]
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -45,12 +50,13 @@ export function useGenerate() {
     suggestions: [],
     error: null,
     totalGenerated: 0,
+    fallbackTriggered: false,
   })
 
   const generate = useCallback(async (options: GenerateOptions) => {
     if (!options.businessDescription?.trim()) return
 
-    setState({ phase: "generating", suggestions: [], error: null, totalGenerated: 0 })
+    setState({ phase: "generating", suggestions: [], error: null, totalGenerated: 0, fallbackTriggered: false })
 
     try {
       const response = await fetch("/api/generate", {
@@ -75,6 +81,7 @@ export function useGenerate() {
         suggestions: data.suggestions ?? [],
         error: null,
         totalGenerated: data.metadata?.totalGenerated ?? 0,
+        fallbackTriggered: data.metadata?.fallbackTriggered ?? false,
       })
     } catch (e) {
       const message = e instanceof Error ? e.message : "Generation failed"
@@ -87,7 +94,7 @@ export function useGenerate() {
   }, [])
 
   const reset = useCallback(() => {
-    setState({ phase: "idle", suggestions: [], error: null, totalGenerated: 0 })
+    setState({ phase: "idle", suggestions: [], error: null, totalGenerated: 0, fallbackTriggered: false })
   }, [])
 
   return { ...state, generate, reset }

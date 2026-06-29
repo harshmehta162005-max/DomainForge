@@ -25,6 +25,8 @@ function AvailabilityBadge({ status }: { status: DomainSuggestion["availabilityS
     available: { bg: "bg-green-500/20 border-green-500/40", text: "text-green-400", label: "Available" },
     taken:     { bg: "bg-red-500/20 border-red-500/40",     text: "text-red-400",   label: "Taken" },
     premium:   { bg: "bg-orange-500/20 border-orange-500/40", text: "text-orange-400", label: "Premium" },
+    parked:    { bg: "bg-amber-500/20 border-amber-500/40", text: "text-amber-400", label: "Parked" },
+    unverified:{ bg: "bg-yellow-500/20 border-yellow-500/40", text: "text-yellow-400", label: "Unverified" },
     unknown:   { bg: "bg-gray-500/20 border-gray-500/40",   text: "text-gray-400",  label: "Unknown" },
     checking:  { bg: "bg-gray-500/20 border-gray-500/40",   text: "text-gray-400",  label: "Checking…" },
   }[status] ?? { bg: "bg-gray-500/20 border-gray-500/40", text: "text-gray-400", label: "Unknown" };

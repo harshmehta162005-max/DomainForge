@@ -10,6 +10,12 @@ export interface RawSuggestion {
   rationale: string
   style: DomainStyle
   pre_score: number
+  score_breakdown: {
+    brandability: number
+    typeability: number
+    keywordRelevance: number
+    tldTrust: number
+  } | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,11 +53,23 @@ function extractSuggestion(raw: unknown): RawSuggestion | null {
   const name = str(obj, "name") || str(obj, "domain_name") || str(obj, "domain")
   if (!name) return null // Skip items with no name
 
+  let score_breakdown = null
+  if (typeof obj.score_breakdown === "object" && obj.score_breakdown !== null) {
+    const sb = obj.score_breakdown as Record<string, unknown>
+    score_breakdown = {
+      brandability: num(sb, "brandability", 50),
+      typeability: num(sb, "typeability", 50),
+      keywordRelevance: num(sb, "keyword_relevance", 50) || num(sb, "keywordRelevance", 50),
+      tldTrust: num(sb, "tld_trust", 50) || num(sb, "tldTrust", 50),
+    }
+  }
+
   return {
     name,
     rationale: str(obj, "rationale") || str(obj, "reason") || str(obj, "description"),
     style: normalizeStyle(obj.style ?? obj.type ?? obj.category),
     pre_score: num(obj, "pre_score", 0) || num(obj, "score", 50),
+    score_breakdown,
   }
 }
 
