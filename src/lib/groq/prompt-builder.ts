@@ -21,13 +21,14 @@ export function buildGenerationPrompt(
     maxLength?: number
     excludeWords?: string[]
     namingStyles?: string[]
+    excludeNames?: string[]
   },
   tonePreset?: TonePreset,
 ): string {
   const {
     businessDescription, categories, targetAudience, problemSolved,
     preferences, tlds = [".com", ".io", ".ai"], count,
-    maxLength = 13, excludeWords = [], namingStyles = [],
+    maxLength = 13, excludeWords = [], namingStyles = [], excludeNames = [],
   } = req
 
   // When a tone preset is active, include BOTH the descriptive text AND the numeric
@@ -55,7 +56,7 @@ Rules:
 - Strong mix: ${namingStyles.length > 0 ? namingStyles.join(", ") + " styles only." : "40% brandable/invented, 30% compound, 20% keyword, 10% alliteration."}
 - Prioritize pronounceability and memorability.
 - Max ${maxLength} characters HARD LIMIT — do not exceed this length.
-- Avoid existing big brands.${excludeWords.length > 0 ? `\n- Do NOT use any of these words or roots: ${excludeWords.join(", ")}.` : ""}
+- Avoid existing big brands.${excludeWords.length > 0 ? `\n- Do NOT use any of these words or roots: ${excludeWords.join(", ")}.` : ""}${excludeNames.length > 0 ? `\n- Do NOT suggest any of these exact names again: ${excludeNames.join(", ")}.` : ""}
 - Higher "Modern" slider = prefer invented/portmanteau words.
 - Higher "Professional" slider = avoid playful suffixes (-ify, -ly abuse).
 

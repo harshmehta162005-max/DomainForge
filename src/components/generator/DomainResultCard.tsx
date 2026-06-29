@@ -5,6 +5,7 @@ import { ExternalLink, Star, Eye, Copy, Check, RefreshCw, TrendingUp } from "luc
 import { useState, useEffect } from "react"
 import type { DomainSuggestion } from "@/types/domain"
 import { createClient } from "@/lib/supabase/client"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 
 // ─── Availability badge ───────────────────────────────────────────────────────
 
@@ -38,40 +39,43 @@ function AvailBadge({ suggestion }: { suggestion: DomainSuggestion }) {
 
 // ─── Score bar ───────────────────────────────────────────────────────────────
 
-function ScoreBarWithBreakdown({ suggestion }: { suggestion: DomainSuggestion }) {
-  const { score, scoreBreakdown } = suggestion
-  const color = score >= 80 ? "bg-green-400" : score >= 60 ? "bg-cyan-400" : "bg-zinc-500"
+function ScoreIndicator({ score, scoreBreakdown }: { score: number, scoreBreakdown?: DomainSuggestion["scoreBreakdown"] }) {
+  const color = score >= 80 ? "bg-green-500" : score >= 60 ? "bg-cyan-500" : "bg-zinc-500"
   
-  return (
-    <div className="group/score relative">
-      <div className="flex items-center gap-2 cursor-help">
-        <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
-          <div
-            className={cn("h-full rounded-full transition-all duration-500 ease-out", color)}
-            style={{ width: `${score}%` }}
-          />
-        </div>
-        <span className={cn("text-xs font-mono tabular-nums font-medium",
-          score >= 80 ? "text-green-400" : score >= 60 ? "text-cyan-400" : "text-zinc-500"
-        )}>
-          {score}
-        </span>
+  const indicator = (
+    <div className="relative flex items-center gap-2">
+      <div className="h-1.5 w-16 sm:w-24 bg-zinc-800 rounded-full overflow-hidden">
+        <div 
+          className={cn("h-full rounded-full transition-all duration-500 ease-out", color)}
+          style={{ width: `${score}%` }}
+        />
       </div>
-      
-      {/* Tooltip */}
-      {scoreBreakdown && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-zinc-800 border border-zinc-700 rounded-md shadow-xl opacity-0 group-hover/score:opacity-100 pointer-events-none transition-opacity duration-150 z-10 text-xs">
-          <div className="space-y-1.5">
-            <div className="flex justify-between"><span className="text-zinc-400">Brandability</span><span className="text-zinc-200">{scoreBreakdown.brandability}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-400">Typeability</span><span className="text-zinc-200">{scoreBreakdown.typeability}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-400">Relevance</span><span className="text-zinc-200">{scoreBreakdown.keywordRelevance}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-400">TLD Trust</span><span className="text-zinc-200">{scoreBreakdown.tldTrust}</span></div>
-          </div>
-          {/* Triangle */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-zinc-700" />
-        </div>
-      )}
+      <span className={cn("text-xs font-mono tabular-nums font-medium",
+        score >= 80 ? "text-green-400" : score >= 60 ? "text-cyan-400" : "text-zinc-500"
+      )}>
+        {score}
+      </span>
     </div>
+  )
+
+  if (!scoreBreakdown) return indicator
+
+  return (
+    <TooltipProvider delay={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="cursor-default">{indicator}</div>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="center" className="w-56 p-3 bg-zinc-800 border-zinc-700 text-xs shadow-xl rounded-md z-[60]">
+          <div className="space-y-1.5 w-full">
+            <div className="flex justify-between"><span className="text-zinc-400">Brandability</span><span className="text-zinc-200 font-mono">{scoreBreakdown.brandability}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">Typeability</span><span className="text-zinc-200 font-mono">{scoreBreakdown.typeability}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">Relevance</span><span className="text-zinc-200 font-mono">{scoreBreakdown.keywordRelevance}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">TLD Trust</span><span className="text-zinc-200 font-mono">{scoreBreakdown.tldTrust}</span></div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
@@ -213,9 +217,8 @@ export function DomainResultCard({
           <AvailBadge suggestion={suggestion} />
         </div>
 
-        {/* Score */}
-        <div className="w-20 hidden sm:block">
-          <ScoreBarWithBreakdown suggestion={suggestion} />
+        <div className="w-32 hidden sm:block">
+          <ScoreIndicator score={suggestion.score} scoreBreakdown={suggestion.scoreBreakdown} />
         </div>
 
         {/* Style */}
@@ -225,7 +228,7 @@ export function DomainResultCard({
         <span className="font-mono text-xs text-zinc-500 w-10 text-right">{suggestion.tld}</span>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex-wrap">
+        <div className="w-[120px] flex items-center justify-center gap-1 flex-wrap">
           <button
             onClick={() => onShortlist(suggestion)}
             title={isShortlisted ? "In shortlist" : "Add to shortlist"}
@@ -301,7 +304,7 @@ export function DomainResultCard({
           </span>
           <span className="text-xs text-zinc-500 capitalize">{suggestion.style}</span>
         </div>
-        <ScoreBarWithBreakdown suggestion={suggestion} />
+        <ScoreIndicator score={suggestion.score} scoreBreakdown={suggestion.scoreBreakdown} />
       </div>
 
       {/* Price estimate for parked or premium/normal */}

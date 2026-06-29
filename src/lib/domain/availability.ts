@@ -3,6 +3,56 @@ import { ok, err, type Result } from "@/types/domain"
 import type { ApiError } from "@/types/domain"
 import { getCachedAvailability, setCachedAvailability } from "@/lib/domain/cache"
 
+// ─── IANA Bootstrap ─────────────────────────────────────────────────────────
+let ianaCache: Record<string, string> | null = null;
+let ianaCacheTime: number = 0;
+
+async function getIanaBootstrap(): Promise<Record<string, string>> {
+  if (ianaCache && Date.now() - ianaCacheTime < 24 * 60 * 60 * 1000) {
+    return ianaCache;
+  }
+  try {
+    const res = await fetch("https://data.iana.org/rdap/dns.json", {
+      signal: AbortSignal.timeout(5000)
+    });
+    const data = await res.json() as any;
+    const mapping: Record<string, string> = {};
+    if (data && data.services) {
+      for (const service of data.services) {
+        const tlds = service[0] as string[];
+        const urls = service[1] as string[];
+        const url = urls.find(u => u.startsWith("https://")) || urls[0];
+        if (url) {
+          for (const tld of tlds) {
+            mapping[tld] = url;
+          }
+        }
+      }
+    }
+    ianaCache = mapping;
+    ianaCacheTime = Date.now();
+    return mapping;
+  } catch (err) {
+    console.error("Failed to fetch IANA bootstrap", err);
+    return ianaCache || {}; // fallback to old cache or empty
+  }
+}
+
+async function getRdapUrlForDomain(domain: string): Promise<string> {
+  const parts = domain.split(".");
+  if (parts.length < 2) return `https://rdap.org/domain/${encodeURIComponent(domain)}`;
+  const tld = parts[parts.length - 1].toLowerCase();
+  
+  const mapping = await getIanaBootstrap();
+  const server = mapping[tld];
+  if (server) {
+    return `${server}domain/${encodeURIComponent(domain)}`;
+  }
+  // Fallback if not in IANA (should be rare)
+  return `https://rdap.org/domain/${encodeURIComponent(domain)}`;
+}
+
+
 // ─── RDAP Tier Classification (PRD v2.0 §3.2) ────────────────────────────────
 
 /**
@@ -108,6 +158,7 @@ export function estimateParkedPrice(tld: string, baseName: string): string {
  */
 export async function checkDomainRDAP(
   domain: string,
+  isPrimary: boolean = true
 ): Promise<Result<AvailabilityResult>> {
   const tld = domain.includes(".") ? `.${domain.split(".").slice(1).join(".")}` : ""
   const tier = getTldTier(tld)
@@ -119,7 +170,7 @@ export async function checkDomainRDAP(
   }
 
   // ── 2. RDAP query ─────────────────────────────────────────────────────────
-  const rdapUrl = `https://rdap.org/domain/${encodeURIComponent(domain)}`
+  const rdapUrl = await getRdapUrlForDomain(domain);
 
   let result: AvailabilityResult
 
@@ -143,11 +194,13 @@ export async function checkDomainRDAP(
     } else if (res.status === 200) {
       // Try to parse RDAP body to detect parking
       let isParked = false
-      try {
-        const rdapData = await res.json() as RdapResponse
-        isParked = detectParkedFromRdap(rdapData)
-      } catch {
-        // JSON parse failed — can't detect parking, but domain is still taken
+      if (isPrimary) {
+        try {
+          const rdapData = await res.json() as RdapResponse
+          isParked = detectParkedFromRdap(rdapData)
+        } catch {
+          // JSON parse failed — can't detect parking, but domain is still taken
+        }
       }
 
       result = {
@@ -218,16 +271,24 @@ export async function checkDomainRDAP(
 export async function checkDomainsAvailability(
   domains: string[],
   concurrency = 5,
+  domainContexts?: { domain: string, isPrimary: boolean }[]
 ): Promise<Map<string, AvailabilityResult>> {
   const results = new Map<string, AvailabilityResult>()
-  const queue = [...domains]
+  
+  const queue = domains.map(d => {
+     if (domainContexts) {
+       const ctx = domainContexts.find(c => c.domain === d)
+       return { domain: d, isPrimary: ctx?.isPrimary ?? true }
+     }
+     return { domain: d, isPrimary: true }
+  })
 
   while (queue.length > 0) {
     const batch = queue.splice(0, concurrency)
     const settled = await Promise.allSettled(
-      batch.map(async (domain) => {
-        const result = await checkDomainRDAP(domain)
-        return { domain, result }
+      batch.map(async (item) => {
+        const result = await checkDomainRDAP(item.domain, item.isPrimary)
+        return { domain: item.domain, result }
       }),
     )
 

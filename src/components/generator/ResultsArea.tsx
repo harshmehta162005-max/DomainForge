@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { LayoutGrid, List, Download, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { saveAs } from "file-saver"
 import type { DomainSuggestion } from "@/types/domain"
 import { DomainResultCard } from "./DomainResultCard"
 
@@ -257,26 +258,23 @@ export function ResultsArea({
 
   const handleExport = () => {
     if (displayed.length === 0) return
-    const rows = [
-      ["Domain", "Status", "Score", "Style", "TLD", "Explanation", "Namecheap Link"],
-      ...displayed.map(s => [
-        s.domain,
-        s.availabilityStatus,
-        String(s.score),
-        s.style,
-        s.tld,
-        s.explanation.replace(/"/g, "'"),
-        s.registrarLinks?.namecheap ?? "",
-      ]),
-    ]
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `domainforge-results-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    // Create a hidden form and POST to the server route.
+    // The server returns Content-Disposition: attachment which makes the
+    // browser download the file with the correct filename — no blob URL tricks.
+    const form = document.createElement("form")
+    form.method = "POST"
+    form.action = "/api/export-csv"
+    form.style.display = "none"
+
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = "domains"
+    input.value = JSON.stringify(displayed)
+    form.appendChild(input)
+
+    document.body.appendChild(form)
+    form.submit()
+    setTimeout(() => document.body.removeChild(form), 2000)
   }
 
   const isLoading = phase === "generating" || phase === "checking"
@@ -296,8 +294,8 @@ export function ResultsArea({
           tldFilter={tldFilter}
           onTldFilterChange={setTldFilter}
           availableTlds={availableTlds}
-          totalCount={suggestions.length}
-          availableCount={suggestions.filter(s => s.availabilityStatus === "available").length}
+          totalCount={tldFilter === "all" ? suggestions.length : displayed.length}
+          availableCount={tldFilter === "all" ? suggestions.filter(s => s.availabilityStatus === "available").length : displayed.length}
           shortlistCount={shortlist.length}
           onExport={handleExport}
         />
@@ -339,13 +337,12 @@ export function ResultsArea({
             </div>
           ) : (
             <div className="border border-zinc-800 rounded-[4px] overflow-hidden">
-              {/* List header */}
-              <div className="grid grid-cols-[1fr_80px_100px_40px_120px] px-4 py-2 border-b border-zinc-800 bg-zinc-950/50">
-                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Domain</span>
-                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:block">Score</span>
-                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider hidden md:block">Style</span>
-                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider text-right">TLD</span>
-                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider text-right">Actions</span>
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-zinc-800 bg-zinc-950/50">
+                <span className="flex-1 text-xs font-medium text-zinc-500 uppercase tracking-wider">Domain</span>
+                <span className="w-32 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:block">Score</span>
+                <span className="w-20 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden md:block">Style</span>
+                <span className="w-10 text-xs font-medium text-zinc-500 uppercase tracking-wider text-right">TLD</span>
+                <span className="w-[120px] text-xs font-medium text-zinc-500 uppercase tracking-wider text-center">Actions</span>
               </div>
               {displayed.map(s => (
                 <DomainResultCard
