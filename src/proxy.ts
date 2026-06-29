@@ -1,66 +1,55 @@
-import { createServerClient } from "@supabase/ssr"
-import { NextResponse, type NextRequest } from "next/server"
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { updateSession } from '@/lib/supabase/middleware'
 
-/**
- * Next.js 16 "proxy" middleware — runs on every matched request.
- * In Next.js 16+, this file MUST be named proxy.ts (not middleware.ts).
- *
- * Refreshes Supabase session cookies so the user stays logged in
- * across navigation and page refreshes.
- */
-export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request })
+// ─── In-memory rate limiter (per-process, good enough for MVP) ────────────────
+// In production, replace with Redis/Upstash for cross-instance consistency.
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          // Write cookies back to both the request and response so the
-          // session token is refreshed on every request.
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
+const rateLimits = new Map<string, { count: number; windowStart: number }>()
+const WINDOW_MS = 60 * 1000 // 1 minute
+
+function isRateLimited(key: string, max: number): boolean {
+  const now = Date.now()
+  const record = rateLimits.get(key)
+  if (!record || now - record.windowStart > WINDOW_MS) {
+    rateLimits.set(key, { count: 1, windowStart: now })
+    return false
+  }
+  if (record.count >= max) return true
+  record.count += 1
+  return false
+}
+
+function rateLimitResponse(): NextResponse {
+  return new NextResponse(
+    JSON.stringify({ error: 'Rate limit exceeded. Please try again in a minute.', code: 'RATE_LIMITED' }),
+    { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } }
   )
+}
 
-  // Calling getUser() is what refreshes and persists the session.
-  // Do NOT use getSession() — it doesn't re-validate the JWT with Supabase servers.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+export async function proxy(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1'
+  const pathname = request.nextUrl.pathname
 
-  // Protect all /dashboard/* routes — redirect unauthenticated users to home
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/"
-    url.searchParams.set("auth", "required")
-    return NextResponse.redirect(url)
+  // ── Rate limiting ────────────────────────────────────────────────────────────
+  if (pathname.startsWith('/api/generate')) {
+    if (isRateLimited(`gen_${ip}`, 5)) return rateLimitResponse()
   }
 
-  // Return response with refreshed session cookies
-  return response
+  if (pathname.startsWith('/api/check-domain') || pathname.startsWith('/api/social-check')) {
+    if (isRateLimited(`rdap_${ip}`, 20)) return rateLimitResponse()
+  }
+
+  // ── Supabase auth session refresh + dashboard protection ─────────────────────
+  // Must run on every request that touches auth-protected routes.
+  // updateSession() refreshes the access token cookie and redirects
+  // unauthenticated users away from /dashboard/*.
+  return updateSession(request)
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths EXCEPT:
-     * - _next/static  (static assets)
-     * - _next/image   (image optimization)
-     * - favicon.ico, sitemap.xml, robots.txt
-     * - /icons/*      (public icon assets)
-     */
-    "/((?!_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt|icons/).*)",
+    // Run on all routes except Next.js internals and static assets
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

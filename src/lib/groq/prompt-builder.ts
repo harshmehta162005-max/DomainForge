@@ -30,8 +30,11 @@ export function buildGenerationPrompt(
     maxLength = 13, excludeWords = [], namingStyles = [],
   } = req
 
+  // When a tone preset is active, include BOTH the descriptive text AND the numeric
+  // slider values so the LLM gets the richest context. Previously the slider numbers
+  // were silently dropped when a preset was selected.
   const toneDescription = tonePreset
-    ? `Tone preset: ${TONE_DESCRIPTIONS[tonePreset]}`
+    ? `Tone preset: ${TONE_DESCRIPTIONS[tonePreset]}\nStyle Sliders (0-100): Modern: ${preferences.modern}, Cool: ${preferences.cool}, Professional: ${preferences.professional}, Short: ${preferences.short}, Memorable: ${preferences.memorable}, Brandable: ${preferences.brandable}. Length preference: ${preferences.length}`
     : `Style Sliders (0-100): Modern: ${preferences.modern}, Cool: ${preferences.cool}, Professional: ${preferences.professional}, Short: ${preferences.short}, Memorable: ${preferences.memorable}, Brandable: ${preferences.brandable}. Length preference: ${preferences.length}`
 
   return `You are an expert branding + domain naming AI.

@@ -128,6 +128,9 @@ export default function GeneratorPage() {
       businessDescription: desc,
       categories: session.categories.length > 0 ? session.categories : ["General"],
       targetAudience: session.targetAudience || "startups and entrepreneurs",
+      // Derive problemSolved from the description so the LLM always gets real context
+      // instead of the generic default "building a new online presence"
+      problemSolved: desc,
       tonePreset: session.tonePreset,
       preferences: session.sliders,
       tlds: session.tlds.length > 0 ? session.tlds : [".com", ".io", ".ai"],
