@@ -7,12 +7,6 @@ import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { InsightsPanel } from "@/components/dashboard/InsightsPanel"
 import { QuickGenerator } from "@/components/dashboard/QuickGenerator"
 import { AIAssistant } from "@/components/dashboard/AIAssistant"
-import {
-  MOCK_STATS,
-  MOCK_ACTIVITY,
-  MOCK_TREND,
-  MOCK_SCORE_DIST,
-} from "@/lib/dashboard/mock"
 import type { WatchlistItem } from "@/types/dashboard"
 
 export const metadata: Metadata = {
@@ -46,49 +40,89 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Fetch real watchlist from Supabase
+  // Fetch real watchlist from Supabase with new analytics columns
   const { data: watchlistRaw } = await supabase
     .from("watchlist")
-    .select("id, domain, status, created_at")
+    .select("id, domain, status, created_at, notes, score, tags, price_estimate, alert_enabled, expires_at, social_x, social_ig, social_x_available, social_ig_available")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false })
 
-  // Merge real data with mock enrichment (score, tags, etc.)
-  // In production these fields come from DB columns; for now we mock-augment
-  const { MOCK_WATCHLIST } = await import("@/lib/dashboard/mock")
+  // Fetch shortlist count
+  const { count: shortlistCount } = await supabase
+    .from("shortlist")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user!.id)
 
-  const watchlistItems: WatchlistItem[] = (watchlistRaw ?? []).length > 0
-    ? (watchlistRaw ?? []).map((row, i) => ({
+  const watchlistItems: WatchlistItem[] = (watchlistRaw ?? []).map((row) => ({
         id: row.id as string,
         domain: row.domain as string,
         status: (row.status as WatchlistItem["status"]) ?? "unknown",
-        score: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.score ?? 80,
-        tags: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.tags ?? [],
-        notes: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.notes ?? null,
+        score: row.score ?? 0,
+        tags: row.tags ?? [],
+        notes: row.notes as string | null,
         createdAt: row.created_at as string,
-        expiresAt: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.expiresAt ?? null,
-        priceEstimate: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.priceEstimate ?? null,
-        priceHistory: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.priceHistory ?? [],
-        socialX: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.socialX ?? null,
-        socialIg: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.socialIg ?? null,
-        socialXAvailable: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.socialXAvailable ?? null,
-        socialIgAvailable: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.socialIgAvailable ?? null,
-        alert_enabled: true,
+        expiresAt: (row as any).expires_at ?? null,
+        priceEstimate: row.price_estimate ?? null,
+        priceHistory: [], // Real price history tracking requires cron job
+        socialX: (row as any).social_x ?? null,
+        socialIg: (row as any).social_ig ?? null,
+        socialXAvailable: (row as any).social_x_available ?? null,
+        socialIgAvailable: (row as any).social_ig_available ?? null,
+        alert_enabled: row.alert_enabled ?? true,
         checkingNow: false,
       }))
-    : MOCK_WATCHLIST // Fall back to mock data if watchlist is empty
 
-  // Derive stats from real or mock data
   const availableCount = watchlistItems.filter(i => i.status === "available").length
   const avgScore = watchlistItems.length > 0
     ? Math.round(watchlistItems.reduce((s, i) => s + i.score, 0) / watchlistItems.length)
-    : MOCK_STATS.avgScore
+    : 0
+
+  // Dynamically compute exact score distribution
+  const scoreDistribution = [
+    { range: "0-20", count: watchlistItems.filter(i => i.score <= 20).length },
+    { range: "21-40", count: watchlistItems.filter(i => i.score > 20 && i.score <= 40).length },
+    { range: "41-60", count: watchlistItems.filter(i => i.score > 40 && i.score <= 60).length },
+    { range: "61-80", count: watchlistItems.filter(i => i.score > 60 && i.score <= 80).length },
+    { range: "81-100", count: watchlistItems.filter(i => i.score > 80).length },
+  ]
+
+  // Dynamically compute availability trend over the last 7 days based on created_at
+  const trend = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    d.setHours(23, 59, 59, 999)
+    
+    const availableAtDate = watchlistItems.filter(item => 
+      item.status === "available" && new Date(item.createdAt) <= d
+    ).length
+    
+    const takenAtDate = watchlistItems.filter(item => 
+      item.status !== "available" && new Date(item.createdAt) <= d
+    ).length
+    
+    trend.push({
+      date: i === 0 ? "Today" : d.toLocaleDateString("en-US", { weekday: "short" }),
+      available: availableAtDate,
+      taken: takenAtDate
+    })
+  }
+
+  // Dynamically generate real activity feed based on created_at timestamps
+  const activityFeed = watchlistItems.slice(0, 5).map(i => ({
+    id: i.id,
+    type: "domain_saved" as const,
+    domain: i.domain,
+    message: "Saved domain to watchlist",
+    timestamp: new Date(i.createdAt).toISOString(),
+  }))
 
   const stats = {
-    ...MOCK_STATS,
+    totalDomains: watchlistItems.length + (shortlistCount || 0),
     inWatchlist: watchlistItems.length,
-    availableNow: availableCount > 0 ? availableCount : MOCK_STATS.availableNow,
+    availableNow: availableCount,
     avgScore,
+    totalValue: "$0",
   }
 
   // First name from email
@@ -112,11 +146,15 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Stats row ────────────────────────────────────────────────────── */}
-      <StatsRow stats={stats} />
+      {watchlistItems.length > 0 && (
+        <>
+          {/* ── Stats row ────────────────────────────────────────────────────── */}
+          <StatsRow stats={stats} />
 
-      {/* ── Quick actions ────────────────────────────────────────────────── */}
-      <QuickActions />
+          {/* ── Quick actions ────────────────────────────────────────────────── */}
+          <QuickActions />
+        </>
+      )}
 
       {/* ── Watchlist table ──────────────────────────────────────────────── */}
       <section>
@@ -129,20 +167,24 @@ export default async function DashboardPage() {
         <WatchlistTable items={watchlistItems} />
       </section>
 
-      {/* ── Bottom 3-col grid ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Activity feed — 2/3 width */}
-        <div className="lg:col-span-2">
-          <ActivityFeed events={MOCK_ACTIVITY} />
-        </div>
-        {/* Quick generator — 1/3 */}
-        <div>
-          <QuickGenerator />
-        </div>
-      </div>
+      {watchlistItems.length > 0 && (
+        <>
+          {/* ── Bottom 3-col grid ────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Activity feed — 2/3 width */}
+            <div className="lg:col-span-2">
+              <ActivityFeed events={activityFeed} />
+            </div>
+            {/* Quick generator — 1/3 */}
+            <div>
+              <QuickGenerator />
+            </div>
+          </div>
 
-      {/* ── Insights ─────────────────────────────────────────────────────── */}
-      <InsightsPanel trend={MOCK_TREND} scoreDistribution={MOCK_SCORE_DIST} />
+          {/* ── Insights ─────────────────────────────────────────────────────── */}
+          <InsightsPanel trend={trend} scoreDistribution={scoreDistribution} />
+        </>
+      )}
 
       {/* ── AI Assistant floating ────────────────────────────────────────── */}
       <AIAssistant />

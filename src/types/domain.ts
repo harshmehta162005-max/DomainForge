@@ -64,6 +64,8 @@ export const DomainSuggestionSchema = z.object({
   registrarLinks: z.object({
     namecheap: z.string().url().optional(),
     godaddy: z.string().url().optional(),
+    porkbun: z.string().url().optional(),
+    cloudflare: z.string().url().optional(),
   }),
   socialHandles: z.object({   // v2.0: inline social availability
     twitter: z.object({ handle: z.string(), status: z.enum(["available", "taken", "unknown"]) }).optional(),
@@ -112,7 +114,7 @@ export const GenerationRequestSchema = z.object({
   targetAudience: z.string().min(3).max(200),
   problemSolved: z.string().min(5).max(300),
   preferences: GenerationPreferencesSchema,
-  tlds: z.array(z.string()).optional().default([".com", ".io", ".ai"]),
+  tlds: z.array(z.string()).optional().default([".com", ".io", ".ai", ".co", ".app", ".dev", ".xyz", ".so"]),
   count: z.number().min(5).max(50).default(18),
 })
 export type GenerationRequest = z.infer<typeof GenerationRequestSchema>
@@ -138,6 +140,7 @@ export const AvailabilityResultSchema = z.object({
   rdapTier: z.enum(["tier1", "tier2", "tier3"]).default("tier1"),
   isParked: z.boolean().default(false),
   checkedAt: z.string(),
+  expiresAt: z.string().optional(),
   fromCache: z.boolean(),
 })
 export type AvailabilityResult = z.infer<typeof AvailabilityResultSchema>

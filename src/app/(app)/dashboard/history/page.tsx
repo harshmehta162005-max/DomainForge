@@ -1,24 +1,16 @@
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
-import { Clock, Globe, CheckCircle2, Trash2, Wand2, ArrowRightLeft, DollarSign } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
+import { HistoryList } from "@/components/dashboard/HistoryList"
 
 export const metadata: Metadata = {
   title: "History — DomainForge",
   description: "Your domain search and action history.",
 }
 
-function timeAgo(ts: string) {
-  const diff = Date.now() - new Date(ts).getTime()
-  const m = Math.floor(diff / 60000)
-  const h = Math.floor(diff / 3600000)
-  const d = Math.floor(diff / 86400000)
-  if (m < 1) return "just now"
-  if (h < 1) return `${m}m ago`
-  if (d < 1) return `${h}h ago`
-  return `${d}d ago`
-}
+// mock history and timeAgo moved to HistoryList
 
-// Mock history events — in production fetch from an `activity_log` table
 const MOCK_HISTORY = [
   { id: "h1", type: "saved",    domain: "forge.ai",      ts: "2026-06-27T08:32:00Z", note: "Saved to watchlist" },
   { id: "h2", type: "checked",  domain: "nexus.io",      ts: "2026-06-26T15:10:00Z", note: "Availability checked — Taken" },
@@ -31,15 +23,6 @@ const MOCK_HISTORY = [
   { id: "h9", type: "checked",  domain: "domain.cloud",  ts: "2026-06-19T13:30:00Z", note: "Checked — Premium domain" },
   { id: "h10",type: "saved",    domain: "domain.cloud",  ts: "2026-06-18T17:00:00Z", note: "Saved to watchlist" },
 ]
-
-const TYPE_CONFIG: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
-  saved:    { icon: Globe,          color: "text-green-400",  bg: "bg-green-950" },
-  checked:  { icon: CheckCircle2,   color: "text-cyan-400",   bg: "bg-cyan-950" },
-  removed:  { icon: Trash2,         color: "text-red-400",    bg: "bg-red-950" },
-  generated:{ icon: Wand2,          color: "text-zinc-400",   bg: "bg-zinc-800" },
-  status:   { icon: ArrowRightLeft, color: "text-orange-400", bg: "bg-orange-950" },
-  price:    { icon: DollarSign,     color: "text-yellow-400", bg: "bg-yellow-950" },
-}
 
 export default async function HistoryPage() {
   const supabase = await createClient()
@@ -68,63 +51,21 @@ export default async function HistoryPage() {
 
   return (
     <div className="px-6 py-8 max-w-[1400px] mx-auto">
-      <div className="mb-8 flex items-end justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-100">History</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">
-            Your domain search and action log
-          </p>
-        </div>
-        <span className="text-xs text-zinc-600 flex items-center gap-1">
-          <Clock className="h-3 w-3" strokeWidth={1.5} />
-          {allEvents.length} events
-        </span>
+      <div className="mb-2">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors duration-150 mb-3"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+          Back to dashboard
+        </Link>
+        <h1 className="text-xl font-semibold text-zinc-100">History</h1>
+        <p className="text-sm text-zinc-500 mt-0.5">
+          Your domain search and action log
+        </p>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
-        {allEvents.length === 0 && (
-          <div className="px-6 py-16 text-center">
-            <p className="text-sm text-zinc-500 mb-4">No history yet. Generate some names to get started.</p>
-            <a
-              href="/"
-              className="inline-flex items-center h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150"
-            >
-              Generate names →
-            </a>
-          </div>
-        )}
-
-        {allEvents.map((event, idx) => {
-          const cfg = TYPE_CONFIG[event.type] ?? TYPE_CONFIG.checked
-          const Icon = cfg.icon
-          const isLast = idx === allEvents.length - 1
-          return (
-            <div
-              key={event.id}
-              className={`flex items-start gap-4 px-5 py-4 hover:bg-zinc-800/30 transition-colors duration-100 ${!isLast ? "border-b border-zinc-800/60" : ""}`}
-            >
-              <div className={`h-8 w-8 rounded-[4px] flex items-center justify-center flex-shrink-0 mt-0.5 ${cfg.bg}`}>
-                <Icon className={`h-4 w-4 ${cfg.color}`} strokeWidth={1.5} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-sm text-zinc-100 font-medium">{event.domain}</span>
-                  <span className="text-xs text-zinc-500">{event.note}</span>
-                </div>
-                <p className="text-xs text-zinc-600 mt-0.5">
-                  {new Date(event.ts).toLocaleDateString("en-US", {
-                    weekday: "short", month: "short", day: "numeric",
-                    hour: "2-digit", minute: "2-digit"
-                  })}
-                </p>
-              </div>
-              <span className="text-xs text-zinc-700 whitespace-nowrap flex-shrink-0 pt-1">
-                {timeAgo(event.ts)}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      <HistoryList initialEvents={allEvents} />
     </div>
   )
 }

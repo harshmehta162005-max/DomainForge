@@ -10,8 +10,8 @@ import { useToast } from "@/components/ui/Toast"
 // ─── Add Domain Modal ─────────────────────────────────────────────────────────
 
 function AddDomainModal({ onClose }: { onClose: () => void }) {
-  const [domain, setDomain] = useState("")
-  const [status, setStatus] = useState<"available" | "taken" | "unknown">("unknown")
+  const [domainName, setDomainName] = useState("")
+  const [extension, setExtension] = useState(".com")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,8 +26,13 @@ function AddDomainModal({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const trimmed = domain.trim().toLowerCase()
-    if (!trimmed || trimmed.length < 3) return
+    // Combine name and extension
+    const baseName = domainName.trim().toLowerCase().replace(/[^a-z0-9-]/g, "")
+    const trimmed = `${baseName}${extension}`
+    if (!baseName || baseName.length < 2) {
+      setError("Please enter a valid domain name.")
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -35,9 +40,78 @@ function AddDomainModal({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: trimmed, status }),
+        body: JSON.stringify({ domain: trimmed, status: "unknown" }),
       })
       if (res.ok) {
+        // Automatically trigger background checks so the table populates with data immediately
+        try {
+          const baseName = trimmed.split(".")[0]
+          await Promise.allSettled([
+            fetch("/api/check-domain", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ domains: [trimmed], forceRefresh: true }),
+            }).then(async (checkRes) => {
+              if (checkRes.ok) {
+                const data = await checkRes.json()
+                const result = data.results?.[trimmed]
+                if (result) {
+                  await fetch("/api/watchlist", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      domain: trimmed,
+                      status: result.status,
+                      ...(result.expiresAt ? { expires_at: result.expiresAt } : {})
+                    }),
+                  })
+                }
+              }
+            }),
+            fetch("/api/social-check", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ domain: trimmed, baseName }),
+            }).then(async (socialRes) => {
+              if (socialRes.ok) {
+                const data = await socialRes.json()
+                const social_x = data.twitter?.handle ?? null
+                const social_x_available = data.twitter?.status === "unknown" ? null : data.twitter?.status === "available"
+                const social_ig = data.instagram?.handle ?? null
+                const social_ig_available = data.instagram?.status === "unknown" ? null : data.instagram?.status === "available"
+                
+                await fetch("/api/watchlist", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    domain: trimmed,
+                    social_x,
+                    social_x_available,
+                    social_ig,
+                    social_ig_available,
+                  }),
+                })
+              }
+            }),
+            fetch("/api/score", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ domain: trimmed }),
+            }).then(async (scoreRes) => {
+              if (scoreRes.ok) {
+                const { score, tags, priceEstimate } = await scoreRes.json()
+                await fetch("/api/watchlist", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ domain: trimmed, score, tags, price_estimate: priceEstimate }),
+                })
+              }
+            })
+          ])
+        } catch {
+          // Ignore background check errors, at least the domain was saved
+        }
+
         setSuccess(true)
         router.refresh()
         setTimeout(onClose, 1200)
@@ -77,28 +151,34 @@ function AddDomainModal({ onClose }: { onClose: () => void }) {
         <div className="px-4 py-4 space-y-4">
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">Domain name</label>
-            <input
-              autoFocus
-              type="text"
-              value={domain}
-              onChange={e => setDomain(e.target.value)}
-              placeholder="e.g. forge.ai"
-              className="w-full h-9 px-3 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                type="text"
+                value={domainName}
+                onChange={e => setDomainName(e.target.value)}
+                placeholder="e.g. forge"
+                className="flex-1 h-9 px-3 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+              />
+              <select
+                value={extension}
+                onChange={e => setExtension(e.target.value)}
+                className="filter-select w-24 h-9 pl-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm font-mono text-zinc-300 focus:outline-none focus:border-zinc-600 transition-colors"
+              >
+                <option value=".com">.com</option>
+                <option value=".io">.io</option>
+                <option value=".ai">.ai</option>
+                <option value=".co">.co</option>
+                <option value=".app">.app</option>
+                <option value=".dev">.dev</option>
+                <option value=".net">.net</option>
+                <option value=".org">.org</option>
+                <option value=".xyz">.xyz</option>
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">Status</label>
-            <select
-              value={status}
-              onChange={e => setStatus(e.target.value as typeof status)}
-              className="w-full h-9 px-3 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 focus:outline-none focus:border-zinc-600 transition-colors cursor-pointer"
-            >
-              <option value="unknown">Unknown — check later</option>
-              <option value="available">Available</option>
-              <option value="taken">Taken</option>
-            </select>
-          </div>
+
 
           {error && (
             <p className="text-xs text-red-400">{error}</p>
@@ -115,7 +195,7 @@ function AddDomainModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             type="submit"
-            disabled={domain.trim().length < 3 || loading || success}
+            disabled={domainName.trim().length < 2 || loading || success}
             className={cn(
               "inline-flex items-center gap-2 h-9 px-4 rounded-[4px] text-sm font-medium transition-all duration-150 active:scale-[0.98]",
               success

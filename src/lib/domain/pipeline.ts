@@ -3,7 +3,7 @@ import { buildGenerationPrompt } from "@/lib/groq/prompt-builder"
 import { captureError, captureWarn, captureEvent } from "@/lib/observability"
 import { parseGenerationOutput, type RawSuggestion } from "@/lib/groq/parser"
 import { checkDomainsAvailability, getTldTier, estimateParkedPrice } from "@/lib/domain/availability"
-import { namecheapUrl, godaddyUrl } from "@/lib/utils"
+import { namecheapUrl, godaddyUrl, porkbunUrl, cloudflareUrl } from "@/lib/utils"
 import type { DomainSuggestion, ScoreBreakdown } from "@/types/domain"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ export interface PipelineRequest {
 
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 
-function estimateDomainPrice(tld: string, domainName: string, score: number): string {
+export function estimateDomainPrice(tld: string, domainName: string, score: number): string {
   const base = TLD_BASE_PRICES[tld] ?? 15
   const lengthMult = domainName.length <= 5 ? 1.8 : domainName.length <= 7 ? 1.2 : 1.0
   const scoreMult = score >= 85 ? 1.5 : score >= 70 ? 1.1 : 1.0
@@ -83,6 +83,8 @@ function buildSuggestion(
     registrarLinks: {
       namecheap: namecheapUrl(domain),
       godaddy: godaddyUrl(domain),
+      porkbun: porkbunUrl(domain),
+      cloudflare: cloudflareUrl(domain),
     },
     socialHandles: null,
   }

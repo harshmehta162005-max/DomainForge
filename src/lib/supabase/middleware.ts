@@ -36,8 +36,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/dashboard")
   ) {
     const url = request.nextUrl.clone()
-    url.pathname = "/"
-    url.searchParams.set("auth", "required")
+    url.pathname = "/auth"
+    url.searchParams.set("next", request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
 

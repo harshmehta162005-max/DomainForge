@@ -38,16 +38,28 @@ export function extractBaseName(domain: string): string {
  * Generate a Namecheap search URL for a domain.
  */
 export function namecheapUrl(domain: string): string {
-  // TODO: Remember to replace 'YOUR_NAMECHEAP_AFFILIATE_ID' with your actual affiliate ID later!
-  return `https://www.namecheap.com/domains/registration/results/?domain=${encodeURIComponent(domain)}&affId=YOUR_NAMECHEAP_AFFILIATE_ID`
+  return `https://www.namecheap.com/domains/registration/results/?domain=${encodeURIComponent(domain)}`
 }
 
 /**
  * Generate a GoDaddy search URL for a domain.
- * TODO: Remember to replace 'YOUR_GODADDY_AFFILIATE_ID' with your actual affiliate ID later!
  */
 export function godaddyUrl(domain: string): string {
-  return `https://www.godaddy.com/domainsearch/find?domainToCheck=${encodeURIComponent(domain)}&isc=YOUR_GODADDY_AFFILIATE_ID`
+  return `https://www.godaddy.com/domainsearch/find?domainToCheck=${encodeURIComponent(domain)}`
+}
+
+/**
+ * Generate a Porkbun search URL for a domain.
+ */
+export function porkbunUrl(domain: string): string {
+  return `https://porkbun.com/checkout/search?q=${encodeURIComponent(domain)}`
+}
+
+/**
+ * Generate a Cloudflare search URL for a domain.
+ */
+export function cloudflareUrl(domain: string): string {
+  return `https://dash.cloudflare.com/domains/register?q=${encodeURIComponent(domain)}`
 }
 
 /**

@@ -12,8 +12,9 @@ export function QuickGenerator() {
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault()
     if (keywords.trim().length < 3) return
-    // Navigate to landing page with pre-filled query
-    router.push(`/?q=${encodeURIComponent(keywords.trim())}`)
+    // Navigate to the simple landing page generator route
+    sessionStorage.setItem("df_description", keywords.trim())
+    router.push("/generate")
   }
 
   return (

@@ -1,9 +1,11 @@
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
-import { Bookmark, ExternalLink } from "lucide-react"
+import Link from "next/link"
+import { Bookmark, ExternalLink, ArrowLeft } from "lucide-react"
 import { RemoveDomainButton } from "@/components/dashboard/RemoveDomainButton"
 import { ShortlistExport } from "@/components/dashboard/ShortlistExport"
 import { LogoMockup } from "@/components/dashboard/LogoMockup"
+import { DownloadSvgButton } from "@/components/dashboard/DownloadSvgButton"
 import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = {
@@ -42,6 +44,13 @@ export default async function ShortlistPage() {
     <div className="px-6 py-8 max-w-[1400px] mx-auto">
       <div className="mb-8 flex items-end justify-between">
         <div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors duration-150 mb-3"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+            Back to dashboard
+          </Link>
           <h1 className="text-xl font-semibold text-zinc-100">Shortlist</h1>
           <p className="text-sm text-zinc-500 mt-0.5">
             Your top picks — domains you&apos;re seriously considering
@@ -116,11 +125,16 @@ export default async function ShortlistPage() {
                   href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-zinc-100 transition-colors duration-150"
+                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
                 >
                   <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
                   Check
                 </a>
+                
+                <div className="flex-1 flex justify-center">
+                  <DownloadSvgButton domain={item.domain as string} />
+                </div>
+                
                 <div className="ml-auto">
                   <RemoveDomainButton domain={item.domain as string} />
                 </div>

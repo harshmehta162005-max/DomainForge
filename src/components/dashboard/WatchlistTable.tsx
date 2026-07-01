@@ -20,6 +20,14 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { WatchlistItem } from "@/types/dashboard"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
@@ -34,11 +42,11 @@ function StatusBadge({ status }: { status: string }) {
   const c = config[status] ?? config.unknown
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] border text-xs font-medium",
+      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-semibold tracking-wide shadow-sm transition-transform hover:scale-105",
       c.bg, c.text, c.border
     )}>
       {status === "checking" && (
-        <RefreshCw className="h-2.5 w-2.5 animate-spin" strokeWidth={2} />
+        <RefreshCw className="h-3 w-3 animate-spin" strokeWidth={2.5} />
       )}
       {c.label}
     </span>
@@ -60,23 +68,39 @@ function ScoreCell({ score }: { score: number }) {
   )
 }
 
-// ─── Social Cell ──────────────────────────────────────────────────────────────
-
-function SocialCell({ handle, available, Icon }: {
+function SocialCell({ handle, available, label }: {
   handle: string | null
   available: boolean | null
-  Icon: React.ElementType
+  label: string
 }) {
-  if (!handle) return <span className="text-zinc-700">—</span>
+  if (handle === null || available === null) {
+    return (
+      <span className="flex items-center gap-1.5 text-zinc-700 text-xs font-mono">
+        <span className="w-4 text-center font-bold text-[10px] opacity-50">{label}</span>
+        —
+      </span>
+    )
+  }
+  
+  const displayHandle = handle.startsWith("@") ? handle : `@${handle}`
+  
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1 text-xs font-mono",
-      available === true ? "text-green-400" :
-      available === false ? "text-red-400" :
-      "text-zinc-500"
-    )}>
-      <Icon className="h-3 w-3" strokeWidth={1.5} />
-      @{handle}
+    <span
+      className={cn(
+        "flex items-center gap-1.5 text-xs font-mono",
+        available === true ? "text-green-400" :
+        available === false ? "text-red-400" :
+        "text-zinc-500"
+      )}
+      title={displayHandle}
+    >
+      <span className={cn(
+        "w-4 text-center font-bold text-[10px]",
+        available === true ? "text-green-500" :
+        available === false ? "text-red-500" :
+        "text-zinc-400"
+      )}>{label}</span>
+      <span className="truncate max-w-[100px]">{displayHandle}</span>
     </span>
   )
 }
@@ -123,12 +147,12 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       title="Copy domain"
-      className="h-5 w-5 flex items-center justify-center rounded-[2px] text-zinc-600 hover:text-zinc-300 transition-colors duration-100"
+      className="h-6 w-6 flex items-center justify-center rounded-md bg-zinc-800/40 border border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200 active:scale-90"
     >
       {copied ? (
-        <Check className="h-3 w-3 text-green-400" />
+        <Check className="h-3.5 w-3.5 text-green-400" />
       ) : (
-        <Copy className="h-3 w-3" strokeWidth={1.5} />
+        <Copy className="h-3.5 w-3.5" strokeWidth={1.5} />
       )}
     </button>
   )
@@ -151,11 +175,11 @@ function ExpiryCell({ expiresAt }: { expiresAt: string | null }) {
 
 function TagChips({ tags }: { tags: string[] }) {
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1.5">
       {tags.slice(0, 3).map(tag => (
         <span
           key={tag}
-          className="px-1.5 py-0.5 rounded-[2px] bg-cyan-950 border border-cyan-900 text-cyan-400 text-xs font-mono"
+          className="px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[11px] font-medium tracking-wide shadow-sm transition-colors hover:bg-cyan-500/20"
         >
           {tag}
         </span>
@@ -173,7 +197,7 @@ function SkeletonRow() {
   return (
     <tr className="border-b border-zinc-800">
       {Array.from({ length: 9 }).map((_, i) => (
-        <td key={i} className="px-4 py-3">
+        <td key={i} className="px-4 py-4">
           <div className="h-4 bg-zinc-800 rounded-[2px] animate-skeleton" style={{ width: `${40 + Math.random() * 40}%` }} />
         </td>
       ))}
@@ -191,8 +215,8 @@ function EmptyTable() {
           No domains saved yet. Generate some names to get started.
         </p>
         <a
-          href="/"
-          className="inline-flex items-center h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
+          href="/generator"
+          className="inline-flex items-center h-9 px-5 rounded-md bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] active:scale-95"
         >
           Generate names →
         </a>
@@ -241,7 +265,7 @@ function ColHeader({
   return (
     <th
       className={cn(
-        "px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors duration-100 select-none whitespace-nowrap",
+        "px-4 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-zinc-200 transition-colors duration-100 select-none whitespace-nowrap",
         className
       )}
       onClick={() => onSort(field)}
@@ -256,12 +280,14 @@ function ColHeader({
 
 // ─── Action Buttons ───────────────────────────────────────────────────────────────
 
-function CheckButton({ domain, onStatusChange }: {
+function CheckButton({ domain, onUpdate }: {
   domain: string
-  onStatusChange?: (domain: string, status: string) => void
+  onUpdate?: (domain: string, updates: Partial<WatchlistItem>) => void
 }) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  const [checked, setChecked] = useState(false)
 
   const handleCheck = async () => {
     setLoading(true)
@@ -269,14 +295,27 @@ function CheckButton({ domain, onStatusChange }: {
       const res = await fetch("/api/check-domain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domains: [domain] }), // API expects { domains: string[] }
+        body: JSON.stringify({ domains: [domain], forceRefresh: true }),
       })
       if (res.ok) {
-        const data = await res.json() as { results?: Record<string, { status: string }> }
+        const data = await res.json() as { results?: Record<string, { status: string; expiresAt?: string }> }
         const status = data.results?.[domain]?.status ?? "unknown"
-        if (onStatusChange) {
-          onStatusChange(domain, status)
+        const expiresAt = data.results?.[domain]?.expiresAt
+        
+        if (onUpdate) {
+          onUpdate(domain, { status, expiresAt: expiresAt || null })
         }
+        
+        await fetch("/api/watchlist", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            domain, 
+            status: status,
+            ...(expiresAt ? { expires_at: expiresAt } : {})
+          }),
+        })
+        setChecked(true)
         router.refresh()
       }
     } catch {
@@ -286,15 +325,18 @@ function CheckButton({ domain, onStatusChange }: {
     }
   }
 
+  if (checked) {
+    return <span className="text-zinc-700 text-xs">—</span>
+  }
 
   return (
     <button
       onClick={handleCheck}
       disabled={loading}
-      className="h-7 px-2 rounded-[4px] text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-100 whitespace-nowrap disabled:opacity-50"
+      className="h-7 px-3 flex items-center justify-center rounded-md text-xs font-medium bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:border-zinc-600 hover:text-zinc-100 hover:bg-zinc-700 transition-all duration-200 whitespace-nowrap disabled:opacity-50 hover:shadow-md active:scale-95"
     >
       {loading ? (
-        <RefreshCw className="h-3 w-3 animate-spin inline" />
+        <RefreshCw className="h-3.5 w-3.5 animate-spin inline" />
       ) : "Check"}
     </button>
   )
@@ -329,59 +371,31 @@ function AlertButton({ domain, alertEnabled }: {
       disabled={loading}
       title={alertEnabled ? "Disable email alerts" : "Enable email alerts"}
       className={cn(
-        "h-7 w-7 flex items-center justify-center rounded-[4px] transition-colors duration-100 disabled:opacity-50",
-        alertEnabled ? "text-cyan-400 hover:bg-zinc-700" : "text-zinc-600 hover:text-zinc-400 hover:bg-zinc-700"
+        "h-7 w-7 flex items-center justify-center rounded-md transition-all duration-200 disabled:opacity-50 active:scale-95 border",
+        alertEnabled ? "text-cyan-400 bg-cyan-950/20 border-cyan-900/30 hover:bg-cyan-900/40 hover:border-cyan-800" : "text-zinc-500 bg-zinc-800/30 border-zinc-800 hover:text-zinc-300 hover:bg-zinc-700 hover:border-zinc-600"
       )}
     >
       {loading ? (
-        <RefreshCw className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+        <RefreshCw className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
       ) : alertEnabled ? (
-        <Bell className="h-3 w-3" strokeWidth={1.5} />
+        <Bell className="h-3.5 w-3.5" strokeWidth={1.5} />
       ) : (
-        <BellOff className="h-3 w-3" strokeWidth={1.5} />
+        <BellOff className="h-3.5 w-3.5" strokeWidth={1.5} />
       )}
     </button>
   )
 }
 
-function RemoveButton({ domain, onRemove }: {
-  domain: string
-  onRemove?: (domain: string) => void
+function RemoveButton({ onClick }: {
+  onClick: () => void
 }) {
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-
-  const handleRemove = async () => {
-    setLoading(true)
-    try {
-      const res = await fetch("/api/watchlist", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain }),
-      })
-      if (res.ok) {
-        if (onRemove) {
-          onRemove(domain)
-        }
-        router.refresh()
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <button
-      onClick={handleRemove}
-      disabled={loading}
+      onClick={onClick}
       title="Remove from watchlist"
-      className="h-7 w-7 flex items-center justify-center rounded-[4px] text-zinc-600 hover:text-red-400 hover:bg-zinc-700 transition-colors duration-100 disabled:opacity-50"
+      className="h-7 w-7 flex items-center justify-center rounded-md text-zinc-500 bg-zinc-800/30 border border-zinc-800 hover:border-red-900/50 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 active:scale-95"
     >
-      {loading ? (
-        <RefreshCw className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
-      ) : (
-        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-      )}
+      <Trash2 className="h-4 w-4" strokeWidth={1.5} />
     </button>
   )
 }
@@ -398,9 +412,19 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [viewMode, setViewMode] = useState<"table" | "grid">("table")
+  const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<WatchlistItem>>>({})
+
+  const handleUpdateItem = (domain: string, updates: Partial<WatchlistItem>) => {
+    setLocalUpdates(prev => ({
+      ...prev,
+      [domain]: { ...prev[domain], ...updates }
+    }))
+  }
 
   // Filter + sort
-  const filtered = items
+  const displayItems = items.map(item => ({ ...item, ...localUpdates[item.domain] }))
+
+  const filtered = displayItems
     .filter(item => {
       if (search && !item.domain.toLowerCase().includes(search.toLowerCase())) return false
       if (statusFilter !== "all" && item.status !== statusFilter) return false
@@ -434,6 +458,115 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
     else setSelected(new Set(filtered.map(i => i.id)))
   }
 
+  const [deleteTarget, setDeleteTarget] = useState<string | "bulk" | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleBulkRemoveClick = () => {
+    setDeleteTarget("bulk")
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    try {
+      if (deleteTarget === "bulk") {
+        const domainsToRemove = filtered.filter(i => selected.has(i.id)).map(i => i.domain)
+        await Promise.all(domainsToRemove.map(domain => 
+          fetch("/api/watchlist", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ domain }),
+          })
+        ))
+        setSelected(new Set())
+      } else {
+        await fetch("/api/watchlist", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain: deleteTarget }),
+        })
+      }
+      setDeleteTarget(null)
+      router.refresh()
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleBulkExport = () => {
+    const selectedItems = filtered.filter(i => selected.has(i.id))
+    const headers = ["Domain", "Status", "Score", "Tags", "Notes", "Price Estimate", "Expires At", "X (Twitter)", "Instagram"]
+    const csvRows = [headers.join(",")]
+    
+    for (const item of selectedItems) {
+      const row = [
+        item.domain,
+        item.status,
+        item.score.toString(),
+        `"${item.tags.join("; ")}"`,
+        `"${(item.notes || "").replace(/"/g, '""')}"`,
+        `"${item.priceEstimate || ""}"`,
+        item.expiresAt || "",
+        item.socialX || "",
+        item.socialIg || ""
+      ]
+      csvRows.push(row.join(","))
+    }
+    
+    const blob = new Blob([csvRows.join("\\n")], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", `domainforge_watchlist_${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const router = useRouter()
+  const [checkingSocials, setCheckingSocials] = useState<Record<string, boolean>>({})
+
+  const handleSingleSocialCheck = async (domain: string) => {
+    setCheckingSocials(prev => ({ ...prev, [domain]: true }))
+    try {
+      const baseName = domain.split(".")[0]
+      const res = await fetch("/api/social-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain, baseName }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const social_x = data.twitter?.handle ?? null
+        const social_x_available = data.twitter?.status === "unknown" ? null : data.twitter?.status === "available"
+        const social_ig = data.instagram?.handle ?? null
+        const social_ig_available = data.instagram?.status === "unknown" ? null : data.instagram?.status === "available"
+
+        handleUpdateItem(domain, {
+          socialX: social_x,
+          socialXAvailable: social_x_available,
+          socialIg: social_ig,
+          socialIgAvailable: social_ig_available,
+        })
+
+        await fetch("/api/watchlist", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            domain,
+            social_x,
+            social_x_available,
+            social_ig,
+            social_ig_available,
+          }),
+        })
+        router.refresh()
+      }
+    } finally {
+      setCheckingSocials(prev => ({ ...prev, [domain]: false }))
+    }
+  }
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
       {/* Toolbar */}
@@ -456,13 +589,11 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="h-8 px-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 focus:outline-none focus:border-zinc-600 cursor-pointer"
+            className="filter-select h-8 pl-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 focus:outline-none focus:border-zinc-600 cursor-pointer"
           >
             <option value="all">All status</option>
             <option value="available">Available</option>
             <option value="taken">Taken</option>
-            <option value="premium">Premium</option>
-            <option value="checking">Checking</option>
           </select>
         </div>
 
@@ -470,8 +601,18 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
         {selected.size > 0 && (
           <div className="flex items-center gap-2 px-2 py-1 bg-zinc-800 rounded-[4px] border border-zinc-700">
             <span className="text-xs text-zinc-400">{selected.size} selected</span>
-            <button className="text-xs text-red-400 hover:text-red-300 transition-colors">Remove</button>
-            <button className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Export</button>
+            <button 
+              onClick={handleBulkRemoveClick}
+              className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+            >
+              Remove
+            </button>
+            <button 
+              onClick={handleBulkExport}
+              className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              Export
+            </button>
           </div>
         )}
 
@@ -502,8 +643,8 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-800 bg-zinc-950/50">
-                <th className="w-8 px-3 py-3">
+              <tr className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
+                <th className="w-8 px-4 py-4">
                   <input
                     type="checkbox"
                     checked={selected.size === filtered.length && filtered.length > 0}
@@ -514,13 +655,13 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                 <ColHeader field="domain" sortField={sortField} sortDir={sortDir} onSort={handleSort}>Domain</ColHeader>
                 <ColHeader field="status" sortField={sortField} sortDir={sortDir} onSort={handleSort}>Status</ColHeader>
                 <ColHeader field="score" sortField={sortField} sortDir={sortDir} onSort={handleSort}>Score</ColHeader>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider whitespace-nowrap">Tags</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider hidden lg:table-cell">Notes</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider whitespace-nowrap">Tags</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider hidden lg:table-cell">Notes</th>
                 <ColHeader field="createdAt" sortField={sortField} sortDir={sortDir} onSort={handleSort} className="hidden md:table-cell">Saved</ColHeader>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider whitespace-nowrap hidden xl:table-cell">Expires</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider hidden xl:table-cell">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider hidden xl:table-cell">Social</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider whitespace-nowrap hidden xl:table-cell">Expires</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider hidden xl:table-cell">Price</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider hidden xl:table-cell">Social</th>
+                <th className="px-4 py-4 text-center text-xs font-semibold text-zinc-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
@@ -536,12 +677,12 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                 <tr
                   key={item.id}
                   className={cn(
-                    "group transition-colors duration-100 hover:bg-zinc-800/40",
-                    selected.has(item.id) && "bg-zinc-800/30"
+                    "group transition-all duration-300 hover:bg-zinc-800/30 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),inset_0_-1px_0_rgba(255,255,255,0.03)]",
+                    selected.has(item.id) && "bg-zinc-800/40"
                   )}
                 >
                   {/* Checkbox */}
-                  <td className="w-8 px-3 py-3">
+                  <td className="w-8 px-4 py-4">
                     <input
                       type="checkbox"
                       checked={selected.has(item.id)}
@@ -551,43 +692,66 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                   </td>
 
                   {/* Domain */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-1.5">
                       <span className="font-mono text-zinc-100 font-medium text-sm whitespace-nowrap" data-domain>
                         {item.domain}
                       </span>
                       <CopyButton text={item.domain} />
-                      <a
-                        href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-zinc-300 transition-all duration-150"
-                      >
-                        <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-                      </a>
                     </div>
                   </td>
 
                   {/* Status */}
-                  <td className="px-4 py-3">
-                    <StatusBadge status={item.status} />
+                  <td className="px-4 py-4">
+                    {item.status === "available" ? (
+                      <a
+                        href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block hover:opacity-80 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                        title="Register this domain"
+                      >
+                        <StatusBadge status={item.status} />
+                      </a>
+                    ) : (
+                      <StatusBadge status={item.status} />
+                    )}
                   </td>
 
                   {/* Score */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4">
                     <ScoreCell score={item.score} />
                   </td>
 
                   {/* Tags */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4">
                     <TagChips tags={item.tags} />
                   </td>
 
                   {/* Notes */}
                   <td className="px-4 py-3 hidden lg:table-cell max-w-xs">
-                    <span className="text-xs text-zinc-500 line-clamp-1">
-                      {item.notes ?? "—"}
-                    </span>
+                    <input
+                      type="text"
+                      defaultValue={item.notes ?? ""}
+                      placeholder="Add note..."
+                      className="w-full bg-transparent border-none outline-none text-xs text-zinc-500 placeholder:text-zinc-700 focus:text-zinc-300 transition-colors"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.currentTarget.blur()
+                        }
+                      }}
+                      onBlur={async (e) => {
+                        const val = e.target.value.trim()
+                        const newNote = val === "" ? null : val
+                        if (newNote !== item.notes) {
+                          await fetch("/api/watchlist", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ domain: item.domain, notes: newNote }),
+                          })
+                        }
+                      }}
+                    />
                   </td>
 
                   {/* Saved */}
@@ -602,7 +766,13 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
 
                   {/* Expires In */}
                   <td className="px-4 py-3 hidden xl:table-cell">
-                    <ExpiryCell expiresAt={item.expiresAt} />
+                    {item.status === "available" ? (
+                      <span className="text-zinc-700 text-xs">—</span>
+                    ) : item.expiresAt ? (
+                      <ExpiryCell expiresAt={item.expiresAt} />
+                    ) : (
+                      <CheckButton domain={item.domain} onUpdate={handleUpdateItem} />
+                    )}
                   </td>
 
                   {/* Price */}
@@ -619,28 +789,48 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
 
                   {/* Social */}
                   <td className="px-4 py-3 hidden xl:table-cell">
-                    <div className="flex flex-col gap-1">
-                      <SocialCell handle={item.socialX} available={item.socialXAvailable} Icon={AtSign} />
-                      <SocialCell handle={item.socialIg} available={item.socialIgAvailable} Icon={AtSign} />
-                    </div>
+                    {item.socialX === null && item.socialIg === null ? (
+                      <button
+                        onClick={() => handleSingleSocialCheck(item.domain)}
+                        disabled={checkingSocials[item.domain]}
+                        className="h-7 px-3 text-[10px] uppercase tracking-wider font-bold text-zinc-400 hover:text-cyan-300 transition-all duration-200 bg-zinc-800/50 border border-zinc-700/50 hover:border-cyan-900/50 hover:bg-cyan-950/30 rounded-md flex items-center justify-center min-w-[64px] disabled:opacity-50 active:scale-95 shadow-sm"
+                      >
+                        {checkingSocials[item.domain] ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "CHECK"}
+                      </button>
+                    ) : (
+                      <div className="flex flex-col gap-1 items-start">
+                        <SocialCell handle={item.socialX} available={item.socialXAvailable} label="X" />
+                        <SocialCell handle={item.socialIg} available={item.socialIgAvailable} label="IG" />
+                      </div>
+                    )}
                   </td>
 
                   {/* Actions */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <CheckButton domain={item.domain} />
-                      {item.status === "available" && (
-                        <a
-                          href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="h-7 px-2 rounded-[4px] flex items-center justify-center text-xs text-cyan-400 hover:text-cyan-300 hover:bg-zinc-700 transition-colors duration-100 whitespace-nowrap"
-                        >
-                          Buy
-                        </a>
-                      )}
+                  <td className="px-4 py-4">
+                    <div className="flex items-center justify-center gap-1 transition-opacity duration-150 w-[110px] mx-auto">
+                      <div className="w-[38px] flex justify-center">
+                        {item.status === "available" ? (
+                          <a
+                            href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-7 px-3 rounded-md flex items-center justify-center text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 hover:text-cyan-300 hover:border-cyan-500/40 transition-all duration-200 whitespace-nowrap hover:shadow-[0_0_12px_rgba(34,211,238,0.15)] active:scale-95"
+                          >
+                            Buy
+                          </a>
+                        ) : (
+                          <a
+                            href={`http://${item.domain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-7 px-3 rounded-md flex items-center justify-center text-xs font-semibold bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:bg-zinc-700 hover:text-zinc-200 transition-all duration-200 whitespace-nowrap active:scale-95"
+                          >
+                            View
+                          </a>
+                        )}
+                      </div>
                       <AlertButton domain={item.domain} alertEnabled={item.alert_enabled} />
-                      <RemoveButton domain={item.domain} />
+                      <RemoveButton onClick={() => setDeleteTarget(item.domain)} />
                     </div>
                   </td>
                 </tr>
@@ -673,27 +863,76 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
               {item.notes && (
                 <p className="mt-2 text-xs text-zinc-500 line-clamp-2">{item.notes}</p>
               )}
-              <div className="mt-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                <CheckButton domain={item.domain} />
-                {item.status === "available" && (
-                  <a
-                    href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors ml-2"
-                  >
-                    Buy →
-                  </a>
-                )}
-                <div className="ml-auto flex items-center gap-1">
+              
+              <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {item.status === "available" ? (
+                    <a
+                      href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-7 px-4 rounded-md flex items-center justify-center text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 hover:text-cyan-300 hover:border-cyan-500/40 transition-all duration-200 active:scale-95 shadow-[0_0_10px_rgba(34,211,238,0.1)]"
+                    >
+                      Buy →
+                    </a>
+                  ) : (
+                    <a
+                      href={`http://${item.domain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-7 px-4 rounded-md flex items-center justify-center text-xs font-semibold bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:bg-zinc-700 hover:text-zinc-200 transition-all duration-200 active:scale-95"
+                    >
+                      View →
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
                   <AlertButton domain={item.domain} alertEnabled={item.alert_enabled} />
-                  <RemoveButton domain={item.domain} />
+                  <RemoveButton onClick={() => setDeleteTarget(item.domain)} />
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl p-0 overflow-hidden sm:rounded-xl">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="text-xl text-zinc-100">
+              Remove Domain{deleteTarget === "bulk" && selected.size > 1 ? "s" : ""}
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 mt-2 text-[15px]">
+              {deleteTarget === "bulk" 
+                ? `Are you sure you want to remove ${selected.size} domains from your watchlist?`
+                : `Are you sure you want to remove `}
+              {deleteTarget !== "bulk" && deleteTarget !== null && (
+                <span className="font-mono text-cyan-400 bg-cyan-950/30 px-1 py-0.5 rounded">{deleteTarget}</span>
+              )}
+              {deleteTarget !== "bulk" && ` from your watchlist?`}
+              <br />
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="border-t border-zinc-800 bg-zinc-950/50 p-6 sm:justify-end gap-3 mt-6">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              disabled={isDeleting}
+              className="h-10 px-4 rounded-md text-sm font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="h-10 px-4 rounded-md text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30 transition-all flex items-center justify-center min-w-[100px] disabled:opacity-50 shadow-[0_0_15px_rgba(239,68,68,0.1)] active:scale-95"
+            >
+              {isDeleting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Remove"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer: count */}
       <div className="px-4 py-2 border-t border-zinc-800 bg-zinc-950/30">

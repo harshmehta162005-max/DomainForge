@@ -116,17 +116,31 @@ export default function AuthPage() {
 
     try {
       if (mode === "signup") {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const nextParam = searchParams.get("next")
+        const redirectTo = new URL(`${window.location.origin}/auth/callback`)
+        if (nextParam) redirectTo.searchParams.set("next", nextParam)
+        
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          options: { emailRedirectTo: redirectTo.toString() },
         })
         if (signUpError) throw signUpError
-        setSuccessMsg("Check your email for a confirmation link.")
+        
+        if (data?.session) {
+          // Email confirmation is disabled in Supabase, user is immediately signed in
+          const nextUrl = searchParams.get("next") || "/dashboard"
+          router.push(nextUrl)
+          router.refresh()
+        } else {
+          setSuccessMsg("Check your email for a confirmation link.")
+        }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
         if (signInError) throw signInError
-        router.push("/dashboard")
+        
+        const nextUrl = searchParams.get("next") || "/dashboard"
+        router.push(nextUrl)
         router.refresh()
       }
     } catch (err) {
@@ -150,9 +164,13 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
     setError(null)
+    const nextParam = searchParams.get("next")
+    const redirectTo = new URL(`${window.location.origin}/auth/callback`)
+    if (nextParam) redirectTo.searchParams.set("next", nextParam)
+    
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: redirectTo.toString() },
     })
     if (oauthError) {
       setError("Google sign-in failed. Try again.")
@@ -270,7 +288,6 @@ export default function AuthPage() {
             </svg>
             {googleLoading ? "Redirecting to Google…" : "Continue with Google"}
           </button>
-
           {/* Mode toggle */}
           <div className="w-full text-center mt-4">
             <span className="text-xs text-gray-400">
@@ -287,28 +304,6 @@ export default function AuthPage() {
                 {mode === "signin" ? "Sign up, it's free!" : "Sign in"}
               </button>
             </span>
-          </div>
-        </div>
-
-        {/* Avatars below card */}
-        <div className="relative z-10 mt-10 flex flex-col items-center text-center">
-          <p className="text-gray-500 text-xs mb-3">
-            Join <span className="font-medium text-white">thousands</span> of founders already using DomainForge.
-          </p>
-          <div className="flex -space-x-2">
-            {[
-              "https://randomuser.me/api/portraits/men/32.jpg",
-              "https://randomuser.me/api/portraits/women/44.jpg",
-              "https://randomuser.me/api/portraits/men/54.jpg",
-              "https://randomuser.me/api/portraits/women/68.jpg",
-            ].map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt="user avatar"
-                className="w-7 h-7 rounded-full border-2 border-[#121212] object-cover"
-              />
-            ))}
           </div>
         </div>
       </div>

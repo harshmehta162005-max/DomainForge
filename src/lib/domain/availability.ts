@@ -158,15 +158,18 @@ export function estimateParkedPrice(tld: string, baseName: string): string {
  */
 export async function checkDomainRDAP(
   domain: string,
-  isPrimary: boolean = true
+  isPrimary: boolean = true,
+  forceRefresh: boolean = false
 ): Promise<Result<AvailabilityResult>> {
   const tld = domain.includes(".") ? `.${domain.split(".").slice(1).join(".")}` : ""
   const tier = getTldTier(tld)
 
   // ── 1. Cache read ─────────────────────────────────────────────────────────
-  const cached = await getCachedAvailability(domain)
-  if (cached) {
-    return ok({ ...cached, rdapTier: tier })
+  if (!forceRefresh) {
+    const cached = await getCachedAvailability(domain)
+    if (cached) {
+      return ok({ ...cached, rdapTier: tier })
+    }
   }
 
   // ── 2. RDAP query ─────────────────────────────────────────────────────────
@@ -192,12 +195,18 @@ export async function checkDomainRDAP(
         fromCache: false,
       }
     } else if (res.status === 200) {
-      // Try to parse RDAP body to detect parking
+      // Try to parse RDAP body to detect parking and expiry
       let isParked = false
+      let expiresAt: string | undefined = undefined
       if (isPrimary) {
         try {
           const rdapData = await res.json() as RdapResponse
           isParked = detectParkedFromRdap(rdapData)
+          
+          const expEvent = rdapData.events?.find(e => e.eventAction === "expiration")
+          if (expEvent?.eventDate) {
+            expiresAt = expEvent.eventDate
+          }
         } catch {
           // JSON parse failed — can't detect parking, but domain is still taken
         }
@@ -209,6 +218,7 @@ export async function checkDomainRDAP(
         rdapTier: tier,
         isParked,
         checkedAt: new Date().toISOString(),
+        expiresAt,
         fromCache: false,
       }
     } else if (tier === "tier3") {
@@ -271,23 +281,23 @@ export async function checkDomainRDAP(
 export async function checkDomainsAvailability(
   domains: string[],
   concurrency = 5,
-  domainContexts?: { domain: string, isPrimary: boolean }[]
+  domainContexts?: { domain: string, isPrimary: boolean, forceRefresh?: boolean }[]
 ): Promise<Map<string, AvailabilityResult>> {
   const results = new Map<string, AvailabilityResult>()
   
   const queue = domains.map(d => {
      if (domainContexts) {
        const ctx = domainContexts.find(c => c.domain === d)
-       return { domain: d, isPrimary: ctx?.isPrimary ?? true }
+       return { domain: d, isPrimary: ctx?.isPrimary ?? true, forceRefresh: ctx?.forceRefresh ?? false }
      }
-     return { domain: d, isPrimary: true }
+     return { domain: d, isPrimary: true, forceRefresh: false }
   })
 
   while (queue.length > 0) {
     const batch = queue.splice(0, concurrency)
     const settled = await Promise.allSettled(
       batch.map(async (item) => {
-        const result = await checkDomainRDAP(item.domain, item.isPrimary)
+        const result = await checkDomainRDAP(item.domain, item.isPrimary, item.forceRefresh)
         return { domain: item.domain, result }
       }),
     )

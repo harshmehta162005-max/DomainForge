@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { WatchlistTable } from "@/components/dashboard/WatchlistTable"
 import { WatchlistExport } from "@/components/dashboard/WatchlistExport"
 import { MOCK_WATCHLIST } from "@/lib/dashboard/mock"
@@ -45,6 +47,13 @@ export default async function WatchlistPage() {
     <div className="px-6 py-8 max-w-[1400px] mx-auto">
       <div className="mb-6 flex items-end justify-between">
         <div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors duration-150 mb-3"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+            Back to dashboard
+          </Link>
           <h1 className="text-xl font-semibold text-zinc-100">Watchlist</h1>
           <p className="text-sm text-zinc-500 mt-0.5">
             {watchlistItems.length} domain{watchlistItems.length !== 1 ? "s" : ""} being monitored

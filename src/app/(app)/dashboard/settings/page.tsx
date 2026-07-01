@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { User, Bell, Shield, Download, Trash2, Save, Check, LogOut } from "lucide-react"
+import { User, Bell, Shield, Download, Trash2, Save, Check, LogOut, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -95,6 +96,13 @@ export default function SettingsPage() {
     <div className="px-6 py-8 max-w-[900px] mx-auto space-y-6">
       <div className="flex items-end justify-between">
         <div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors duration-150 mb-3"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+            Back to dashboard
+          </Link>
           <h1 className="text-xl font-semibold text-zinc-100">Settings</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Manage your account and preferences</p>
         </div>

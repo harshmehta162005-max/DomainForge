@@ -1,7 +1,8 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { ExternalLink, Star, Eye, Copy, Check, RefreshCw, TrendingUp } from "lucide-react"
+import { Share2, ExternalLink, RefreshCw, Eye, TrendingUp, Info, Star, Copy, Check } from "lucide-react"
+import { RegistrarDropdown } from "@/components/domain/RegistrarDropdown"
 import { useState, useEffect } from "react"
 import type { DomainSuggestion } from "@/types/domain"
 import { createClient } from "@/lib/supabase/client"
@@ -63,7 +64,7 @@ function ScoreIndicator({ score, scoreBreakdown }: { score: number, scoreBreakdo
   return (
     <TooltipProvider delay={100}>
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger>
           <div className="cursor-default">{indicator}</div>
         </TooltipTrigger>
         <TooltipContent side="top" align="center" className="w-56 p-3 bg-zinc-800 border-zinc-700 text-xs shadow-xl rounded-md z-[60]">
@@ -185,12 +186,33 @@ export function DomainResultCard({
         body: JSON.stringify({
           domain: suggestion.domain,
           status: suggestion.availabilityStatus,
+          score: suggestion.score,
+          tags: [suggestion.style],
+          price_estimate: suggestion.isParked ? suggestion.parkedPriceEstimate : suggestion.priceEstimate
         }),
       })
 
       if (res.ok) {
         setWatchlisted(true)
         onWatchlist(suggestion)
+        
+        // Background fetch 3 descriptive tags for the dashboard table
+        fetch("/api/score", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain: suggestion.domain }),
+        }).then(async (scoreRes) => {
+          if (scoreRes.ok) {
+            const { tags } = await scoreRes.json()
+            if (tags && tags.length > 0) {
+              await fetch("/api/watchlist", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ domain: suggestion.domain, tags }),
+              })
+            }
+          }
+        }).catch(() => {})
       } else {
         const data = await res.json().catch(() => ({})) as { error?: string; detail?: string }
         const msg = data.detail ?? data.error ?? `HTTP ${res.status}`
@@ -259,22 +281,11 @@ export function DomainResultCard({
           {watchlistError && (
             <span className="text-xs text-red-400 ml-1">{watchlistError}</span>
           )}
-          {suggestion.registrarLinks?.namecheap && (
-            <a
-              href={suggestion.registrarLinks.namecheap}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                "h-7 px-2 flex items-center gap-1 rounded-[4px] text-xs font-medium transition-colors duration-150",
-                suggestion.availabilityStatus === "available"
-                  ? "bg-cyan-400 text-zinc-950 hover:bg-cyan-300"
-                  : "text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800"
-              )}
-            >
-              <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-              {suggestion.availabilityStatus === "available" ? "Buy" : "View"}
-            </a>
-          )}
+          <RegistrarDropdown
+            suggestion={suggestion}
+            className="ml-auto"
+            variant="secondary"
+          />
         </div>
       </div>
     )
@@ -364,22 +375,11 @@ export function DomainResultCard({
           <span className="text-xs text-red-400">{watchlistError}</span>
         )}
 
-        {suggestion.registrarLinks?.namecheap && (
-          <a
-            href={suggestion.registrarLinks.namecheap}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              "ml-auto h-7 px-2 flex items-center gap-1 rounded-[4px] text-xs font-medium transition-colors duration-150",
-              suggestion.availabilityStatus === "available"
-                ? "bg-cyan-400 text-zinc-950 hover:bg-cyan-300"
-                : "bg-zinc-800 border border-zinc-700 text-zinc-500 hover:text-zinc-100"
-            )}
-          >
-            <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-            {suggestion.availabilityStatus === "available" ? "Buy" : "View"}
-          </a>
-        )}
+        <RegistrarDropdown
+          suggestion={suggestion}
+          className="ml-auto"
+          variant="secondary"
+        />
       </div>
     </div>
   )

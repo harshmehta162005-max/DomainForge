@@ -16,6 +16,8 @@ import { namecheapUrl } from "@/lib/utils";
 interface DomainCardStackProps {
   suggestions: DomainSuggestion[];
   onSave?: (domain: DomainSuggestion) => void;
+  initialDomain?: string;
+  initialSaved?: string[];
 }
 
 // ─── Availability Badge ───────────────────────────────────────────────────────
@@ -110,7 +112,7 @@ function DomainCardFace({
           </p>
           {suggestion.priceEstimate && (
             <p className="text-xs text-gray-500 mt-1 font-mono">
-              ~${suggestion.priceEstimate}/yr
+              ~{suggestion.priceEstimate}
             </p>
           )}
         </div>
@@ -166,11 +168,24 @@ function DomainCardFace({
 
 // ─── Main Card Stack ───────────────────────────────────────────────────────────
 
-export default function DomainCardStack({ suggestions, onSave }: DomainCardStackProps) {
-  const [cards, setCards] = useState(suggestions);
-  const [currentIndex, setCurrentIndex] = useState(0);
+export default function DomainCardStack({ suggestions, onSave, initialDomain, initialSaved = [] }: DomainCardStackProps) {
+  const rotatedSuggestions = React.useMemo(() => {
+    if (!initialDomain) return suggestions;
+    const idx = suggestions.findIndex(s => s.domain === initialDomain);
+    if (idx <= 0) return suggestions;
+    return [...suggestions.slice(idx), ...suggestions.slice(0, idx)];
+  }, [suggestions, initialDomain]);
+
+  const [cards, setCards] = useState(rotatedSuggestions);
+  
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (!initialDomain) return 0;
+    const idx = suggestions.findIndex(s => s.domain === initialDomain);
+    return idx > 0 ? idx : 0;
+  });
+  
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set(initialSaved));
   const [dragDirection, setDragDirection] = useState<"up" | "down" | null>(null);
 
   const dragY = useMotionValue(0);
@@ -194,8 +209,8 @@ export default function DomainCardStack({ suggestions, onSave }: DomainCardStack
   };
 
   const resetCards = () => {
-    setCards(suggestions);
-    setCurrentIndex(0);
+    setCards(rotatedSuggestions);
+    setCurrentIndex(initialDomain ? Math.max(0, suggestions.findIndex(s => s.domain === initialDomain)) : 0);
   };
 
   const handleDragEnd = (_: unknown, info: { velocity: { y: number }; offset: { y: number } }) => {

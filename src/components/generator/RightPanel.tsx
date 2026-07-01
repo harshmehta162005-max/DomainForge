@@ -8,6 +8,7 @@ import {
   ChevronDown, ChevronUp, TrendingUp, Target, Layers,
   Globe, Brain, ShoppingCart, Heart, Wand2,
 } from "lucide-react"
+import { RegistrarDropdown } from "@/components/domain/RegistrarDropdown"
 import type { DomainSuggestion } from "@/types/domain"
 import { cn } from "@/lib/utils"
 import confetti from "canvas-confetti"
@@ -244,17 +245,11 @@ function HeroDomain({ suggestion, isShortlisted, onShortlist, onFirstShortlist }
           {isShortlisted ? "Shortlisted" : "Add to shortlist"}
         </button>
 
-        {suggestion.availabilityStatus === "available" && suggestion.registrarLinks?.namecheap && (
-          <a
-            href={suggestion.registrarLinks.namecheap}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-9 px-4 flex items-center gap-2 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
-          >
-            <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
-            Register now
-          </a>
-        )}
+        <RegistrarDropdown
+          suggestion={suggestion}
+          className="h-9 px-4 text-sm gap-2"
+          variant="primary"
+        />
 
         <button
           onClick={copy}

@@ -17,19 +17,7 @@ const STARTER_PROMPTS = [
   "What's a good .io domain for a fintech startup?",
 ]
 
-// Simple mock responses
-function getMockResponse(query: string): string {
-  if (query.toLowerCase().includes("forge")) {
-    return "forge.ai is an excellent choice — it's short (5 chars), immediately evocative of craftsmanship and creation, and the .ai TLD signals AI-native positioning. The word 'forge' implies strength and making things, which pairs well with developer tools or AI platforms."
-  }
-  if (query.toLowerCase().includes("alternative")) {
-    return "Based on your watchlist, strong alternatives include: anvil.ai (craftsmanship angle), smith.dev (technical + maker), foundry.io (enterprise-grade feel). All score 80+ and have decent social availability."
-  }
-  if (query.toLowerCase().includes("fintech")) {
-    return "For a fintech .io: vaultkey.io, coinage.io, ledgr.io, or clearfund.io — short, trust-evoking names that avoid 'pay/fin/money' clichés that are already saturated."
-  }
-  return "I can help you analyze domains in your watchlist, suggest alternatives, evaluate trademark risk, or explain what makes a domain name work for a specific category. What would you like to explore?"
-}
+
 
 export function AIAssistant() {
   const [open, setOpen] = useState(false)
@@ -54,18 +42,44 @@ export function AIAssistant() {
     setInput("")
 
     const userMsg: Message = { id: Date.now().toString(), role: "user", content: q }
-    setMessages(prev => [...prev, userMsg])
+    const updatedMessages = [...messages, userMsg]
+    setMessages(updatedMessages)
     setLoading(true)
 
-    // Simulate LLM latency + mock response
-    await new Promise(r => setTimeout(r, 800))
-    const aiMsg: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: getMockResponse(q),
+    try {
+      // Exclude the very first welcome message from context to save tokens, or leave it. 
+      // We will just pass the entire user conversation.
+      const apiMessages = updatedMessages
+        .filter(m => m.id !== "0") // filter out the initial welcome message from API
+        .map(m => ({ role: m.role, content: m.content }))
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages }),
+      })
+
+      if (!response.ok) throw new Error("API failed")
+
+      const data = await response.json()
+      
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.reply || "Something went wrong.",
+      }
+      setMessages(prev => [...prev, aiMsg])
+    } catch (error) {
+      console.error(error)
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, I encountered an error connecting to the API. Please try again later.",
+      }
+      setMessages(prev => [...prev, errorMsg])
+    } finally {
+      setLoading(false)
     }
-    setMessages(prev => [...prev, aiMsg])
-    setLoading(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

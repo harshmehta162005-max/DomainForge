@@ -59,6 +59,8 @@ export default function GeneratePage() {
   const router = useRouter()
   const { phase, suggestions, error, generate, reset } = useGenerate()
   const [description, setDescription] = useState<string | null>(null)
+  const [initialDomain, setInitialDomain] = useState<string | null>(null)
+  const [initialSaved, setInitialSaved] = useState<string[]>([])
 
   useEffect(() => {
     const stored = sessionStorage.getItem("df_description")
@@ -68,6 +70,31 @@ export default function GeneratePage() {
     }
     startTransition(() => setDescription(stored))
     generate({ businessDescription: stored })
+
+    // Check for pending save intent
+    const intentStr = sessionStorage.getItem("df_save_intent")
+    if (intentStr) {
+      try {
+        const intent = JSON.parse(intentStr)
+        setInitialDomain(intent.domain)
+        setInitialSaved([intent.domain])
+        
+        fetch("/api/watchlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            domain: intent.domain, 
+            status: intent.availabilityStatus,
+            score: intent.score,
+            tags: [intent.style],
+            price_estimate: intent.isParked ? intent.parkedPriceEstimate : intent.priceEstimate
+          }),
+        }).catch(console.error)
+      } catch (e) {
+        console.error("Failed to parse save intent", e)
+      }
+      sessionStorage.removeItem("df_save_intent")
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -88,16 +115,43 @@ export default function GeneratePage() {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      // Not signed in — redirect to auth page
-      router.push("/auth")
+      // Not signed in — store intent and redirect to auth page
+      sessionStorage.setItem("df_save_intent", JSON.stringify(suggestion))
+      router.push("/auth?next=/generate")
       return
     }
 
-    await fetch("/api/watchlist", {
+    const res = await fetch("/api/watchlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ domain: suggestion.domain, status: suggestion.availabilityStatus }),
+      body: JSON.stringify({ 
+        domain: suggestion.domain, 
+        status: suggestion.availabilityStatus,
+        score: suggestion.score,
+        tags: [suggestion.style],
+        price_estimate: suggestion.isParked ? suggestion.parkedPriceEstimate : suggestion.priceEstimate
+      }),
     })
+    
+    if (res.ok) {
+      // Background fetch 3 descriptive tags for the dashboard table
+      fetch("/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: suggestion.domain }),
+      }).then(async (scoreRes) => {
+        if (scoreRes.ok) {
+          const { tags } = await scoreRes.json()
+          if (tags && tags.length > 0) {
+            await fetch("/api/watchlist", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ domain: suggestion.domain, tags }),
+            })
+          }
+        }
+      }).catch(() => {})
+    }
   }
 
   const isLoading = phase === "generating" || phase === "checking"
@@ -175,6 +229,8 @@ export default function GeneratePage() {
           <DomainCardStack
             suggestions={suggestions}
             onSave={handleSave}
+            initialDomain={initialDomain ?? undefined}
+            initialSaved={initialSaved}
           />
         )}
       </main>

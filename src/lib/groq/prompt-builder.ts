@@ -27,7 +27,7 @@ export function buildGenerationPrompt(
 ): string {
   const {
     businessDescription, categories, targetAudience, problemSolved,
-    preferences, tlds = [".com", ".io", ".ai"], count,
+    preferences, tlds = [".com", ".io", ".ai", ".co", ".app", ".dev", ".xyz", ".so"], count,
     maxLength = 13, excludeWords = [], namingStyles = [], excludeNames = [],
   } = req
 

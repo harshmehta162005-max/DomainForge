@@ -22,7 +22,7 @@ const GenerateRequestSchema = z.object({
       length: z.enum(["short", "medium", "long"]).optional(),
     })
     .optional(),
-  tlds: z.array(z.string()).optional().default([".com", ".io", ".ai"]),
+  tlds: z.array(z.string()).optional().default([".com", ".io", ".ai", ".co", ".app", ".dev", ".xyz", ".so"]),
   count: z.number().min(5).max(20).optional().default(8),
   maxLength: z.number().min(4).max(20).optional().default(13),
   excludeWords: z.array(z.string()).optional().default([]),

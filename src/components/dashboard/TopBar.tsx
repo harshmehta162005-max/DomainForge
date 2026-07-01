@@ -13,10 +13,14 @@ interface TopBarProps {
 // ─── Command Palette ──────────────────────────────────────────────────────────
 
 const COMMANDS = [
-  { id: "generate", label: "New generation", shortcut: "G", href: "/" },
+  { id: "dashboard", label: "Go to dashboard", shortcut: "D", href: "/dashboard" },
+  { id: "generate", label: "New generation", shortcut: "G", href: "/generator" },
   { id: "watchlist", label: "Go to watchlist", shortcut: "W", href: "/dashboard/watchlist" },
   { id: "shortlist", label: "Go to shortlist", shortcut: "S", href: "/dashboard/shortlist" },
+  { id: "bulk", label: "Bulk Check", shortcut: "B", href: "/dashboard/bulk" },
+  { id: "history", label: "View history", shortcut: "H", href: "/dashboard/history" },
   { id: "insights", label: "View insights", shortcut: "I", href: "/dashboard/insights" },
+  { id: "settings", label: "Settings", shortcut: "⌘,", href: "/dashboard/settings" },
 ] as const
 
 function CommandPalette({ onClose }: { onClose: () => void }) {

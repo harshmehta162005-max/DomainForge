@@ -48,10 +48,10 @@ export default function HomePageClient() {
     <>
       <style>{keyframes}</style>
 
-      <div className="relative w-full min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-4">
+      <div className="relative w-full h-[calc(100vh-64px)] flex flex-col items-center overflow-hidden">
 
         {/* Background graphic */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <div className="absolute inset-0 w-full h-full overflow-hidden -z-0">
           <div
             className="absolute inset-0 w-full h-full"
             style={{
@@ -79,10 +79,11 @@ export default function HomePageClient() {
         </div>
 
         {/* Main content */}
-        <main className="relative z-10 text-center flex flex-col items-center w-full max-w-3xl px-4">
+        <div className="flex-1 flex flex-col items-center justify-center w-full z-10 pt-4 pb-2">
+          <main className="relative text-center flex flex-col items-center w-full max-w-4xl px-4">
 
           <div
-            className="bg-gray-800 bg-opacity-50 border border-gray-700 rounded-full px-4 py-1 text-sm mb-6 flex items-center gap-2"
+            className="bg-gray-800 bg-opacity-50 border border-gray-700 rounded-full px-4 py-1 text-sm mb-4 flex items-center gap-2"
             style={{ animation: "fade-in 1s ease-out" }}
           >
             <span
@@ -104,7 +105,7 @@ export default function HomePageClient() {
           </h1>
 
           <p
-            className="text-gray-300 mb-10 max-w-xl text-lg md:text-xl"
+            className="text-gray-300 mb-6 max-w-xl text-lg md:text-xl"
             style={{ animation: "fade-in-up 0.8s ease-out 0.4s backwards" }}
           >
             Describe your business and get 20+ AI-generated domain suggestions
@@ -113,10 +114,10 @@ export default function HomePageClient() {
 
           <form
             onSubmit={handleGenerate}
-            className="w-full"
+            className="w-full max-w-3xl mx-auto"
             style={{ animation: "fade-in-up 0.8s ease-out 0.6s backwards" }}
           >
-            <div className="relative bg-gray-800 bg-opacity-60 border border-gray-700 rounded-lg p-1 flex flex-col sm:flex-row gap-2 backdrop-blur-sm">
+            <div className="relative bg-gray-800 bg-opacity-60 border border-gray-700 rounded-lg p-1 flex flex-col sm:flex-row gap-2 backdrop-blur-sm focus-within:ring-1 focus-within:ring-orange-500/50 focus-within:border-orange-500/50 focus-within:shadow-[0_0_30px_rgba(249,115,22,0.2)] transition-all duration-500">
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -133,23 +134,24 @@ export default function HomePageClient() {
               <ShinyButton
                 onClick={handleGenerate}
                 disabled={!description.trim() || isLoading}
-                className="self-end sm:self-auto"
+                className="self-end sm:self-center mr-1"
               >
                 {isLoading ? "Loading…" : "Generate names →"}
               </ShinyButton>
             </div>
-            <p className="text-gray-600 text-xs mt-2">
+            <p className="text-gray-500 text-xs mt-4 font-medium tracking-wide">
               Press Enter to generate · No account needed · Free to use
             </p>
           </form>
-        </main>
+          </main>
+        </div>
 
         {/* Footer TLDs */}
         <footer
-          className="absolute bottom-0 left-0 right-0 p-6 md:px-12 z-10"
+          className="w-full pb-4 px-6 md:px-12 z-10 mt-auto shrink-0"
           style={{ animation: "fade-in 1s ease-out 1s backwards" }}
         >
-          <div className="max-w-2xl mx-auto mb-6 p-4 bg-gray-800/40 border border-gray-700/50 rounded-lg backdrop-blur-sm text-center">
+          <div className="max-w-2xl mx-auto mb-4 p-4 bg-gray-800/40 border border-gray-700/50 rounded-lg backdrop-blur-sm text-center">
             <p className="text-xs text-gray-300 font-medium tracking-wide uppercase mb-1.5">
               Smart Availability Routing
             </p>
@@ -170,7 +172,6 @@ export default function HomePageClient() {
                 {tld}
               </span>
             ))}
-            <span className="text-gray-600 text-sm">+ 1000 more</span>
           </div>
         </footer>
       </div>

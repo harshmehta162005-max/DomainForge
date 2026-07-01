@@ -62,7 +62,8 @@ function loadSession(): SessionState {
   try {
     const raw = localStorage.getItem(LS_KEY)
     if (!raw) return DEFAULT_STATE
-    return { ...DEFAULT_STATE, ...JSON.parse(raw) as Partial<SessionState> }
+    const parsed = JSON.parse(raw) as Partial<SessionState>
+    return { ...DEFAULT_STATE, ...parsed, description: "" }
   } catch {
     return DEFAULT_STATE
   }
@@ -155,7 +156,23 @@ export default function GeneratorPage() {
   const handleShortlist = useCallback((s: DomainSuggestion) => {
     setShortlist(prev => {
       const exists = prev.some(p => p.domain === s.domain)
-      return exists ? prev.filter(p => p.domain !== s.domain) : [...prev, s]
+      
+      // Sync with backend
+      if (exists) {
+        fetch("/api/shortlist", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain: s.domain }),
+        }).catch(console.error)
+        return prev.filter(p => p.domain !== s.domain)
+      } else {
+        fetch("/api/shortlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain: s.domain, status: s.availabilityStatus }),
+        }).catch(console.error)
+        return [...prev, s]
+      }
     })
   }, [])
 

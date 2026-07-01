@@ -7,6 +7,7 @@ const CheckDomainSchema = z.object({
     .array(z.string().min(3))
     .min(1)
     .max(20, "Max 20 domains per request"),
+  forceRefresh: z.boolean().optional(),
 })
 
 export async function POST(request: Request) {
@@ -33,8 +34,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const results = await checkDomainsAvailability(parsed.data.domains, 5)
-    const output: Record<string, { available: boolean; status: string; checkedAt: string; fromCache: boolean }> = {}
+    const results = await checkDomainsAvailability(
+      parsed.data.domains, 
+      5,
+      parsed.data.domains.map(d => ({ domain: d, isPrimary: true, forceRefresh: parsed.data.forceRefresh }))
+    )
+    const output: Record<string, { available: boolean; status: string; checkedAt: string; fromCache: boolean; expiresAt?: string }> = {}
 
     for (const [domain, result] of results.entries()) {
       output[domain] = {
@@ -42,6 +47,7 @@ export async function POST(request: Request) {
         status: result.status,
         checkedAt: result.checkedAt,
         fromCache: result.fromCache,
+        expiresAt: result.expiresAt,
       }
     }
 

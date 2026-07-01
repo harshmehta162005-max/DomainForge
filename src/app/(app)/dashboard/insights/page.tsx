@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import { InsightsPanel } from "@/components/dashboard/InsightsPanel"
-import { TrendingUp, Globe, CheckCircle, Star } from "lucide-react"
+import { TrendingUp, Globe, CheckCircle, Star, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 export const metadata: Metadata = {
   title: "Insights — DomainForge",
@@ -117,6 +118,13 @@ export default async function InsightsPage() {
   return (
     <div className="px-6 py-8 max-w-[1400px] mx-auto space-y-6">
       <div>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors duration-150 mb-3"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+          Back to dashboard
+        </Link>
         <h1 className="text-xl font-semibold text-zinc-100">Insights</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Portfolio analytics and availability trends</p>
       </div>

@@ -7,8 +7,11 @@ import { createClient } from "@/lib/supabase/server"
 const AddToWatchlistSchema = z.object({
   domain: z.string().min(3).max(253),
   status: z
-    .enum(["available", "taken", "premium", "unknown", "checking"])
+    .enum(["available", "taken", "premium", "unknown", "checking", "parked", "unverified"])
     .default("unknown"),
+  score: z.number().optional(),
+  tags: z.array(z.string()).optional(),
+  price_estimate: z.string().nullable().optional(),
 })
 
 const RemoveFromWatchlistSchema = z.object({
@@ -32,7 +35,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("watchlist")
-    .select("id, domain, status, notes, created_at")
+    .select("id, domain, status, notes, created_at, score, tags, price_estimate, alert_enabled, social_x, social_ig, social_x_available, social_ig_available, expires_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
 
@@ -79,12 +82,12 @@ export async function POST(request: Request) {
     )
   }
 
-  const { domain, status } = parsed.data
+  const { domain, status, score = 0, tags = [], price_estimate = null } = parsed.data
 
   const { data, error } = await supabase
     .from("watchlist")
     .upsert(
-      { user_id: user.id, domain, status },
+      { user_id: user.id, domain, status, score, tags, price_estimate },
       { onConflict: "user_id,domain", ignoreDuplicates: false },
     )
     .select("id")
@@ -150,11 +153,21 @@ export async function DELETE(request: Request) {
   return NextResponse.json({ removed: parsed.data.domain })
 }
 
-// ─── PATCH /api/watchlist — update domain alert status ───────────────────────
+// ─── PATCH /api/watchlist — update domain details ────────────────────────────
 
 const UpdateWatchlistSchema = z.object({
   domain: z.string().min(3).max(253),
-  alert_enabled: z.boolean(),
+  alert_enabled: z.boolean().optional(),
+  notes: z.string().nullable().optional(),
+  expires_at: z.string().nullable().optional(),
+  social_x: z.string().nullable().optional(),
+  social_ig: z.string().nullable().optional(),
+  social_x_available: z.boolean().nullable().optional(),
+  social_ig_available: z.boolean().nullable().optional(),
+  score: z.number().optional(),
+  tags: z.array(z.string()).optional(),
+  status: z.enum(["available", "taken", "premium", "unknown", "checking", "parked", "unverified"]).optional(),
+  price_estimate: z.string().nullable().optional(),
 })
 
 export async function PATCH(request: Request) {
@@ -188,14 +201,18 @@ export async function PATCH(request: Request) {
     )
   }
 
-  const { domain, alert_enabled } = parsed.data
+  const { domain, ...updates } = parsed.data
+  
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ updated: domain })
+  }
 
   const { data, error } = await supabase
     .from("watchlist")
-    .update({ alert_enabled })
+    .update(updates)
     .eq("user_id", user.id)
     .eq("domain", domain)
-    .select("id, alert_enabled")
+    .select("id")
     .single()
 
   if (error) {
@@ -206,5 +223,5 @@ export async function PATCH(request: Request) {
     )
   }
 
-  return NextResponse.json({ updated: domain, alert_enabled: data.alert_enabled })
+  return NextResponse.json({ updated: domain })
 }
