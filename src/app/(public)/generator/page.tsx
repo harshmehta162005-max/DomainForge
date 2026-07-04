@@ -195,7 +195,7 @@ export default function GeneratorPage() {
       <header className="h-14 flex-shrink-0 flex items-center justify-between px-4 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm z-20">
         <div className="flex items-center gap-3">
           <Link
-            href="/"
+            href="/dashboard"
             className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-200 transition-colors duration-150"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />

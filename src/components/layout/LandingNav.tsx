@@ -13,9 +13,6 @@ export async function LandingNav() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const displayEmail = user?.email
-    ? `${user.email[0]}***@${user.email.split("@")[1]}`
-    : null
 
   return (
     <nav className="relative z-20 flex items-center justify-between px-6 py-4 md:px-12">
@@ -32,7 +29,7 @@ export async function LandingNav() {
             >
               Dashboard
             </Link>
-            <span className="text-xs text-zinc-600 font-mono hidden sm:block">{displayEmail}</span>
+
             <SignOutButton />
           </>
         ) : (

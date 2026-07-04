@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getGroqClient, GROQ_MODELS } from "@/lib/groq/client"
-import { buildSocialAnalysisPrompt } from "@/lib/groq/prompt-builder"
+import { buildSocialAnalysisPrompt, buildTrademarkAnalysisPrompt } from "@/lib/groq/prompt-builder"
 import { checkDomainsAvailability } from "@/lib/domain/availability"
 import { namecheapUrl, godaddyUrl } from "@/lib/utils"
 import type { DomainAnalysis, DomainTldResult } from "@/types/domain"
@@ -11,6 +11,8 @@ import type { DomainAnalysis, DomainTldResult } from "@/types/domain"
 const AnalyzeRequestSchema = z.object({
   baseName: z.string().min(1).max(63),          // e.g. "brewly"
   currentTld: z.string().optional().default(".com"),  // skip from alt check
+  businessDescription: z.string().min(2).max(500).optional().default("General business"),
+  categories: z.array(z.string()).optional().default(["General"]),
 })
 
 // ─── Alternative TLDs to check ────────────────────────────────────────────────
@@ -19,12 +21,7 @@ const ALT_TLDS = [".com", ".io", ".ai", ".co", ".dev", ".net", ".app"]
 
 // ─── Safely extract analysis JSON from LLM output ────────────────────────────
 
-function parseAnalysisJson(raw: string): {
-  social_suggestions?: unknown
-  trademark_risk?: unknown
-  reason?: unknown
-} {
-  // Strip markdown fences
+function parseJsonSafe<T>(raw: string): T | null {
   const stripped = raw
     .split("\n")
     .filter((l) => !l.trim().startsWith("```"))
@@ -33,16 +30,12 @@ function parseAnalysisJson(raw: string): {
 
   const start = stripped.indexOf("{")
   const end = stripped.lastIndexOf("}")
-  if (start === -1 || end === -1) return {}
+  if (start === -1 || end === -1) return null
 
   try {
-    return JSON.parse(stripped.slice(start, end + 1)) as {
-      social_suggestions?: unknown
-      trademark_risk?: unknown
-      reason?: unknown
-    }
+    return JSON.parse(stripped.slice(start, end + 1)) as T
   } catch {
-    return {}
+    return null
   }
 }
 
@@ -68,16 +61,16 @@ export async function POST(request: Request) {
     )
   }
 
-  const { baseName, currentTld } = parsed.data
+  const { baseName, currentTld, businessDescription, categories } = parsed.data
 
-  // 2. Run Groq social/trademark analysis + RDAP alt-TLD checks in parallel
-  const [analysisResult, rdapResults] = await Promise.allSettled([
-    // 2a. Groq social + trademark analysis
+  // 2. Run Groq social analysis, trademark analysis + RDAP alt-TLD checks in parallel
+  const [socialResult, trademarkResult, rdapResults] = await Promise.allSettled([
+    // 2a. Groq social analysis
     (async () => {
       const groq = getGroqClient()
       const prompt = buildSocialAnalysisPrompt(baseName)
       const completion = await groq.chat.completions.create({
-        model: GROQ_MODELS.fast,   // Fast model is fine for this small task
+        model: GROQ_MODELS.fast,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
         max_tokens: 512,
@@ -85,7 +78,20 @@ export async function POST(request: Request) {
       return completion.choices[0]?.message?.content ?? ""
     })(),
 
-    // 2b. Alternative TLD RDAP checks (exclude the current TLD)
+    // 2b. Groq trademark analysis (using quality model for better reasoning)
+    (async () => {
+      const groq = getGroqClient()
+      const prompt = buildTrademarkAnalysisPrompt(baseName, businessDescription, categories)
+      const completion = await groq.chat.completions.create({
+        model: GROQ_MODELS.quality,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+        max_tokens: 1024,
+      })
+      return completion.choices[0]?.message?.content ?? ""
+    })(),
+
+    // 2c. Alternative TLD RDAP checks (exclude the current TLD)
     checkDomainsAvailability(
       ALT_TLDS
         .filter((tld) => tld !== currentTld)
@@ -94,28 +100,46 @@ export async function POST(request: Request) {
     ),
   ])
 
-  // 3. Parse Groq output
+  // 3. Parse outputs
   let socialSuggestions: string[] = []
+  
   let trademarkRisk: DomainAnalysis["trademarkRisk"] = "medium"
-  let trademarkReason = "Unable to assess trademark risk."
+  let trademarkScore = 50
+  let trademarkSummary = "Unable to assess trademark risk."
+  let trademarkKeyReasons = ["Analysis failed or timed out."]
+  let trademarkRecommendedAction = "Manual verification required."
+  let trademarkDisclaimer = "This is a preliminary AI assessment only and does not constitute legal advice."
 
-  if (analysisResult.status === "fulfilled") {
-    const raw = parseAnalysisJson(analysisResult.value)
-
-    if (Array.isArray(raw.social_suggestions)) {
+  if (socialResult.status === "fulfilled") {
+    const raw = parseJsonSafe<{ social_suggestions?: unknown }>(socialResult.value)
+    if (raw && Array.isArray(raw.social_suggestions)) {
       socialSuggestions = (raw.social_suggestions as unknown[])
         .filter((s): s is string => typeof s === "string")
         .slice(0, 5)
     }
-    if (
-      raw.trademark_risk === "low" ||
-      raw.trademark_risk === "medium" ||
-      raw.trademark_risk === "high"
-    ) {
-      trademarkRisk = raw.trademark_risk
-    }
-    if (typeof raw.reason === "string") {
-      trademarkReason = raw.reason
+  }
+
+  if (trademarkResult.status === "fulfilled") {
+    const raw = parseJsonSafe<{
+      riskLevel?: unknown
+      riskScore?: unknown
+      summary?: unknown
+      keyReasons?: unknown
+      recommendedAction?: unknown
+      disclaimer?: unknown
+    }>(trademarkResult.value)
+
+    if (raw) {
+      if (raw.riskLevel === "low" || raw.riskLevel === "medium" || raw.riskLevel === "high") {
+        trademarkRisk = raw.riskLevel
+      }
+      if (typeof raw.riskScore === "number") trademarkScore = raw.riskScore
+      if (typeof raw.summary === "string") trademarkSummary = raw.summary
+      if (Array.isArray(raw.keyReasons)) {
+        trademarkKeyReasons = raw.keyReasons.filter((r): r is string => typeof r === "string")
+      }
+      if (typeof raw.recommendedAction === "string") trademarkRecommendedAction = raw.recommendedAction
+      if (typeof raw.disclaimer === "string") trademarkDisclaimer = raw.disclaimer
     }
   }
 
@@ -146,7 +170,11 @@ export async function POST(request: Request) {
     baseName,
     socialSuggestions,
     trademarkRisk,
-    trademarkReason,
+    trademarkScore,
+    trademarkSummary,
+    trademarkKeyReasons,
+    trademarkRecommendedAction,
+    trademarkDisclaimer,
     altTlds,
   }
 

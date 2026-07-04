@@ -169,7 +169,11 @@ export interface DomainAnalysis {
   baseName: string
   socialSuggestions: string[]           // e.g. ["@brewly", "@brewlyhq"]
   trademarkRisk: "low" | "medium" | "high"
-  trademarkReason: string
+  trademarkScore: number
+  trademarkSummary: string
+  trademarkKeyReasons: string[]
+  trademarkRecommendedAction: string
+  trademarkDisclaimer: string
   altTlds: DomainTldResult[]            // alternative TLD availability
 }
 

@@ -122,7 +122,8 @@ export default async function DashboardPage() {
     inWatchlist: watchlistItems.length,
     availableNow: availableCount,
     avgScore,
-    totalValue: "$0",
+    totalDelta: 0,
+    availableDelta: 0,
   }
 
   // First name from email

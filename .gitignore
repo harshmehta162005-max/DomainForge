@@ -50,3 +50,6 @@ next-env.d.ts
 /docs/
 /prd_dump.txt
 /scripts/
+
+# Sentry Config File
+.env.sentry-build-plugin

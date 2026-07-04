@@ -40,10 +40,6 @@ const NAV_ITEMS = [
 export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
   const pathname = usePathname()
 
-  const displayEmail = userEmail
-    ? `${userEmail[0]}***@${userEmail.split("@")[1]}`
-    : null
-
   return (
     <motion.aside
       animate={{ width: collapsed ? 56 : 240 }}
@@ -148,28 +144,6 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* User section at bottom */}
-      <div className="border-t border-zinc-800 p-2 flex-shrink-0">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <div className="h-6 w-6 rounded-[4px] bg-cyan-900 flex items-center justify-center flex-shrink-0">
-            <Circle className="h-3 w-3 text-cyan-400" fill="currentColor" strokeWidth={0} />
-          </div>
-          <AnimatePresence mode="wait">
-            {!collapsed && displayEmail && (
-              <motion.span
-                key="email"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.1 }}
-                className="text-xs text-zinc-500 font-mono truncate"
-              >
-                {displayEmail}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
     </motion.aside>
   )
 }

@@ -80,23 +80,64 @@ Return ONLY valid JSON. No markdown, no extra text.`
 }
 
 /**
- * Builds the social handle + trademark analysis prompt.
+ * Builds the social handle analysis prompt.
  */
 export function buildSocialAnalysisPrompt(baseName: string): string {
-  return `For the domain base name "${baseName}", suggest 3-5 handle variations and evaluate:
-
-1. Likely social handle availability (X, Instagram, GitHub) - high/medium/low confidence.
-2. Basic trademark risk (common word? invented?).
+  return `For the domain base name "${baseName}", suggest 3-5 social handle variations (X, Instagram, GitHub).
+Prioritize short, available-sounding handles.
 
 Output JSON:
 {
-  "base": "${baseName}",
-  "social_suggestions": ["@name", ...],
-  "trademark_risk": "low | medium | high",
-  "reason": "explanation"
+  "social_suggestions": ["@name", ...]
 }
 
 Return ONLY valid JSON. No markdown, no extra text.`
+}
+
+/**
+ * Builds the detailed trademark risk assessment prompt.
+ */
+export function buildTrademarkAnalysisPrompt(baseName: string, businessDescription: string, categories: string[]): string {
+  return `You are an expert trademark + branding risk assessment AI with deep knowledge of global trademark law, USPTO/EUIPO/WIPO databases, and brand protection best practices.
+Task: Analyze the given domain base name for potential trademark conflicts and brand risk.
+Input:
+
+Domain base name: ${baseName}
+Business context: ${businessDescription}
+Categories: ${categories.join(", ")}
+
+Instructions:
+Perform a professional preliminary trademark risk assessment.
+Rules:
+
+Focus primarily on USPTO (US) as default, mention if EU/international risk is likely.
+Consider exact matches, phonetic similarities, and common law usage.
+Factor in the business category and description for relevance.
+Be conservative: if in doubt, mark higher risk.
+Never give legal advice — always include disclaimer.
+
+Return ONLY this exact JSON structure:
+{
+  "riskLevel": "low" | "medium" | "high",
+  "riskScore": number, // 0-100
+  "summary": "Short 1-sentence risk assessment",
+  "keyReasons": ["array of 2-4 bullet points explaining risk"],
+  "recommendedAction": "string (e.g. 'Safe to proceed with caution', 'Strongly recommend legal review', etc.)",
+  "disclaimer": "This is a preliminary AI assessment only and does not constitute legal advice. Consult a qualified trademark attorney for proper clearance."
+}
+
+Evaluation Criteria (use these internally):
+
+Exact or very close existing marks in relevant classes = High risk
+Common dictionary words in generic categories = Lower risk
+Invented/brandable names = Generally lower risk
+Popular industries (tech, finance, health) = Higher chance of conflicts
+
+Output Rules:
+
+Return only valid JSON, nothing else.
+Be honest and balanced.
+Prioritize user safety.`
 }
 
 /**

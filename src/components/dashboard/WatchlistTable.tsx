@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   ExternalLink,
   Trash2,
@@ -17,6 +18,7 @@ import {
   ChevronDown,
   Bell,
   BellOff,
+  Info,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { WatchlistItem } from "@/types/dashboard"
@@ -299,7 +301,7 @@ function CheckButton({ domain, onUpdate }: {
       })
       if (res.ok) {
         const data = await res.json() as { results?: Record<string, { status: string; expiresAt?: string }> }
-        const status = data.results?.[domain]?.status ?? "unknown"
+        const status = (data.results?.[domain]?.status ?? "unknown") as WatchlistItem["status"]
         const expiresAt = data.results?.[domain]?.expiresAt
         
         if (onUpdate) {
@@ -694,9 +696,14 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                   {/* Domain */}
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-zinc-100 font-medium text-sm whitespace-nowrap" data-domain>
+                      <Link 
+                        href={`/domain/${item.domain}`} 
+                        className="font-mono text-zinc-100 font-medium text-sm whitespace-nowrap hover:text-cyan-400 hover:underline transition-colors flex items-center gap-1.5 group/link"
+                        title="View domain details & trademark risk"
+                      >
                         {item.domain}
-                      </span>
+                        <Info className="w-3.5 h-3.5 text-zinc-500 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                      </Link>
                       <CopyButton text={item.domain} />
                     </div>
                   </td>

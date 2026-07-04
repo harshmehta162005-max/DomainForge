@@ -4,7 +4,6 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { WatchlistTable } from "@/components/dashboard/WatchlistTable"
 import { WatchlistExport } from "@/components/dashboard/WatchlistExport"
-import { MOCK_WATCHLIST } from "@/lib/dashboard/mock"
 import type { WatchlistItem } from "@/types/dashboard"
 
 export const metadata: Metadata = {
@@ -18,30 +17,28 @@ export default async function WatchlistPage() {
 
   const { data: watchlistRaw } = await supabase
     .from("watchlist")
-    .select("id, domain, status, created_at")
+    .select("id, domain, status, created_at, notes, score, tags, price_estimate, alert_enabled, expires_at, social_x, social_ig, social_x_available, social_ig_available")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false })
 
-  const watchlistItems: WatchlistItem[] = (watchlistRaw ?? []).length > 0
-    ? (watchlistRaw ?? []).map((row, i) => ({
+  const watchlistItems: WatchlistItem[] = (watchlistRaw ?? []).map((row) => ({
         id: row.id as string,
         domain: row.domain as string,
         status: (row.status as WatchlistItem["status"]) ?? "unknown",
-        score: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.score ?? 80,
-        tags: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.tags ?? [],
-        notes: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.notes ?? null,
+        score: row.score ?? 0,
+        tags: row.tags ?? [],
+        notes: row.notes ?? null,
         createdAt: row.created_at as string,
-        expiresAt: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.expiresAt ?? null,
-        priceEstimate: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.priceEstimate ?? null,
-        priceHistory: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.priceHistory ?? [],
-        socialX: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.socialX ?? null,
-        socialIg: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.socialIg ?? null,
-        socialXAvailable: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.socialXAvailable ?? null,
-        socialIgAvailable: MOCK_WATCHLIST[i % MOCK_WATCHLIST.length]?.socialIgAvailable ?? null,
-        alert_enabled: true,
+        expiresAt: row.expires_at ?? null,
+        priceEstimate: row.price_estimate ?? null,
+        priceHistory: [],
+        socialX: row.social_x ?? null,
+        socialIg: row.social_ig ?? null,
+        socialXAvailable: row.social_x_available ?? null,
+        socialIgAvailable: row.social_ig_available ?? null,
+        alert_enabled: row.alert_enabled ?? true,
         checkingNow: false,
       }))
-    : MOCK_WATCHLIST
 
   return (
     <div className="px-6 py-8 max-w-[1400px] mx-auto">

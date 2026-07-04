@@ -56,8 +56,8 @@ export default async function InsightsPage() {
     { data: watchlist },
     { data: shortlist }
   ] = await Promise.all([
-    supabase.from("watchlist").select("id, domain, status, created_at").eq("user_id", user!.id),
-    supabase.from("shortlist").select("id, domain, status, created_at").eq("user_id", user!.id)
+    supabase.from("watchlist").select("id, domain, status, created_at, score").eq("user_id", user!.id),
+    supabase.from("shortlist").select("id, domain, status, created_at, score").eq("user_id", user!.id)
   ])
 
   const wlItems = watchlist ?? []
@@ -87,33 +87,36 @@ export default async function InsightsPage() {
   })
   const tldDist = Object.entries(tldMap).sort((a, b) => b[1] - a[1])
 
-  // Simple trend: last 7 days count of created_at
+  // Match Dashboard's cumulative trend logic
   const trendData = []
-  const scoreDistData = [
-    { range: "Premium", count: uniqueItems.filter(i => i.status === "premium").length },
-    { range: "Available", count: availCount },
-    { range: "Taken", count: uniqueItems.filter(i => i.status === "taken").length },
-    { range: "Checking", count: uniqueItems.filter(i => i.status === "checking" || i.status === "unknown").length },
-  ]
-
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    const dateStr = d.toISOString().split("T")[0]
+    d.setHours(23, 59, 59, 999)
     
-    // Count how many items were added on this date
-    const itemsOnDate = uniqueItems.filter(item => {
-      const itemDate = new Date(item.created_at).toISOString().split("T")[0]
-      return itemDate === dateStr
-    })
+    const availableAtDate = uniqueItems.filter(item => 
+      item.status === "available" && new Date(item.created_at) <= d
+    ).length
+    
+    const takenAtDate = uniqueItems.filter(item => 
+      item.status !== "available" && new Date(item.created_at) <= d
+    ).length
     
     trendData.push({
-      date: d.toLocaleDateString("en-US", { weekday: "short" }),
-      count: itemsOnDate.length,
-      available: itemsOnDate.filter(i => i.status === "available").length,
-      taken: itemsOnDate.filter(i => i.status === "taken").length
+      date: i === 0 ? "Today" : d.toLocaleDateString("en-US", { weekday: "short" }),
+      available: availableAtDate,
+      taken: takenAtDate
     })
   }
+
+  // Match Dashboard's score distribution logic
+  const scoreDistData = [
+    { range: "0-20", count: uniqueItems.filter(i => (i.score ?? 0) <= 20).length },
+    { range: "21-40", count: uniqueItems.filter(i => (i.score ?? 0) > 20 && (i.score ?? 0) <= 40).length },
+    { range: "41-60", count: uniqueItems.filter(i => (i.score ?? 0) > 40 && (i.score ?? 0) <= 60).length },
+    { range: "61-80", count: uniqueItems.filter(i => (i.score ?? 0) > 60 && (i.score ?? 0) <= 80).length },
+    { range: "81-100", count: uniqueItems.filter(i => (i.score ?? 0) > 80).length },
+  ]
 
   return (
     <div className="px-6 py-8 max-w-[1400px] mx-auto space-y-6">
