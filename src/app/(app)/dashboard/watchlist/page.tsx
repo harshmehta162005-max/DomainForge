@@ -17,7 +17,7 @@ export default async function WatchlistPage() {
 
   const { data: watchlistRaw } = await supabase
     .from("watchlist")
-    .select("id, domain, status, created_at, notes, score, tags, price_estimate, alert_enabled, expires_at, social_x, social_ig, social_x_available, social_ig_available")
+    .select("id, domain, status, created_at, notes, score, tags, price_estimate, alert_enabled, notify_frequency, notification_preferences, expires_at, social_x, social_ig, social_x_available, social_ig_available")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false })
 
@@ -37,6 +37,8 @@ export default async function WatchlistPage() {
         socialXAvailable: row.social_x_available ?? null,
         socialIgAvailable: row.social_ig_available ?? null,
         alert_enabled: row.alert_enabled ?? true,
+        notify_frequency: row.notify_frequency ?? "immediate",
+        notification_preferences: row.notification_preferences ?? { availability: true, price_drop: true, expiration: true },
         checkingNow: false,
       }))
 

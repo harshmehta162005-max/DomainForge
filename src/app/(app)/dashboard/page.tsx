@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   // Fetch real watchlist from Supabase with new analytics columns
   const { data: watchlistRaw } = await supabase
     .from("watchlist")
-    .select("id, domain, status, created_at, notes, score, tags, price_estimate, alert_enabled, expires_at, social_x, social_ig, social_x_available, social_ig_available")
+    .select("id, domain, status, created_at, notes, score, tags, price_estimate, alert_enabled, notify_frequency, notification_preferences, expires_at, social_x, social_ig, social_x_available, social_ig_available")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false })
 
@@ -69,6 +69,8 @@ export default async function DashboardPage() {
         socialXAvailable: (row as any).social_x_available ?? null,
         socialIgAvailable: (row as any).social_ig_available ?? null,
         alert_enabled: row.alert_enabled ?? true,
+        notify_frequency: (row as any).notify_frequency ?? "immediate",
+        notification_preferences: (row as any).notification_preferences ?? { availability: true, price_drop: true, expiration: true },
         checkingNow: false,
       }))
 

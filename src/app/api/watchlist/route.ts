@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
+import { Resend } from "resend"
+import { env } from "@/lib/env"
+import { WatchlistLimitEmail } from "@/emails/WatchlistLimitEmail"
+import * as React from "react"
+
+const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -35,7 +41,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("watchlist")
-    .select("id, domain, status, notes, created_at, score, tags, price_estimate, alert_enabled, social_x, social_ig, social_x_available, social_ig_available, expires_at")
+    .select("id, domain, status, notes, created_at, score, tags, price_estimate, alert_enabled, notify_frequency, notification_preferences, social_x, social_ig, social_x_available, social_ig_available, expires_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
 
@@ -84,6 +90,28 @@ export async function POST(request: Request) {
 
   const { domain, status, score = 0, tags = [], price_estimate = null } = parsed.data
 
+  // Enforce Watchlist Limits
+  const MAX_LIMIT = 50
+  const WARNING_THRESHOLD = 40
+
+  const { count, error: countError } = await supabase
+    .from("watchlist")
+    .select("*", { count: 'exact', head: true })
+    .eq("user_id", user.id)
+
+  if (countError) {
+    return NextResponse.json({ error: "Failed to check watchlist limit." }, { status: 500 })
+  }
+
+  const currentCount = count || 0
+
+  if (currentCount >= MAX_LIMIT) {
+    return NextResponse.json(
+      { error: `Free tier limit reached. You can only monitor up to ${MAX_LIMIT} domains.`, code: "LIMIT_REACHED" },
+      { status: 403 }
+    )
+  }
+
   const { data, error } = await supabase
     .from("watchlist")
     .upsert(
@@ -99,6 +127,24 @@ export async function POST(request: Request) {
       { error: "Failed to save domain. Try again.", code: "DB_ERROR", detail: error.message },
       { status: 500 },
     )
+  }
+
+  // Send warning email if exactly hitting the threshold
+  if (currentCount + 1 === WARNING_THRESHOLD && resend && user.email) {
+    const firstName = user.email.split("@")[0].split(".")[0]
+    const userName = firstName.charAt(0).toUpperCase() + firstName.slice(1)
+    
+    await resend.emails.send({
+      from: "DomainForge Alerts <alerts@domainforge.ai>",
+      to: user.email,
+      subject: "Action Required: Watchlist limit approaching",
+      react: React.createElement(WatchlistLimitEmail, {
+        userName,
+        appUrl: env.NEXT_PUBLIC_APP_URL,
+        currentCount: WARNING_THRESHOLD,
+        maxLimit: MAX_LIMIT
+      })
+    }).catch(console.error)
   }
 
   return NextResponse.json({ id: data.id, domain }, { status: 201 })
@@ -168,6 +214,12 @@ const UpdateWatchlistSchema = z.object({
   tags: z.array(z.string()).optional(),
   status: z.enum(["available", "taken", "premium", "unknown", "checking", "parked", "unverified"]).optional(),
   price_estimate: z.string().nullable().optional(),
+  notify_frequency: z.enum(['immediate', 'daily', 'weekly']).optional(),
+  notification_preferences: z.object({
+    availability: z.boolean(),
+    price_drop: z.boolean(),
+    expiration: z.boolean(),
+  }).optional(),
 })
 
 export async function PATCH(request: Request) {

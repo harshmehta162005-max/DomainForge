@@ -40,6 +40,7 @@ export const EnvSchema = z.object({
     (v) => (v === "" ? "http://localhost:3000" : v),
     z.string().url().default("http://localhost:3000"),
   ),
+  CRON_SECRET: optionalStr,
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),

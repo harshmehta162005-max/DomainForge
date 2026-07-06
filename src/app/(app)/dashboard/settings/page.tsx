@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { User, Bell, Shield, Download, Trash2, Save, Check, LogOut, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -56,6 +56,23 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 export default function SettingsPage() {
   const router = useRouter()
   const [saved, setSaved] = useState(false)
+  const [plan, setPlan] = useState("free")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPlan = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('user_settings').select('plan').eq('user_id', user.id).single();
+        if (data?.plan) {
+          setPlan(data.plan);
+        }
+      }
+      setLoading(false);
+    }
+    fetchPlan();
+  }, [])
 
   // Notification prefs
   const [notifAvailable, setNotifAvailable] = useState(true)
@@ -123,9 +140,22 @@ export default function SettingsPage() {
       {/* Account */}
       <Section title="Account">
         <Field label="Account type" sub="Your current plan">
-          <span className="text-xs px-2 py-1 rounded-[2px] bg-cyan-950 border border-cyan-800 text-cyan-400 font-mono">
-            Free tier
-          </span>
+          <div className="flex items-center gap-3">
+            {loading ? (
+              <span className="text-xs px-2 py-1 rounded-[2px] bg-zinc-800 text-zinc-500 font-mono">Loading...</span>
+            ) : (
+              <>
+                <span className={cn("text-xs px-2 py-1 rounded-[2px] font-mono border", plan === "pro" ? "bg-cyan-950 border-cyan-800 text-cyan-400" : "bg-zinc-800 border-zinc-700 text-zinc-300")}>
+                  {plan === "pro" ? "Pro tier" : "Free tier"}
+                </span>
+                {plan === "free" && (
+                  <Link href="/dashboard/billing" className="text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2">
+                    Upgrade to Pro
+                  </Link>
+                )}
+              </>
+            )}
+          </div>
         </Field>
         <div className="border-t border-zinc-800" />
         <Field label="Sign out" sub="Sign out of your account on this device">
@@ -165,8 +195,11 @@ export default function SettingsPage() {
             className="h-8 px-2.5 w-48 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 font-mono focus:outline-none focus:border-zinc-600 transition-colors"
           />
         </Field>
-        <Field label="Auto-check watchlist" sub="Automatically re-check availability on a schedule">
-          <Toggle checked={autoCheck} onChange={setAutoCheck} />
+        <Field label="Auto-check watchlist" sub={plan === "pro" ? "Automatically re-check availability on a schedule" : "Automatically re-check availability on a schedule (Pro only)"}>
+          <div className="flex items-center gap-2">
+            {plan === "free" && <span className="text-xs text-amber-500 bg-amber-950/30 px-1.5 py-0.5 rounded font-mono border border-amber-900/50">PRO</span>}
+            <Toggle checked={plan === "pro" ? autoCheck : false} onChange={plan === "pro" ? setAutoCheck : () => alert("Upgrade to Pro to use this feature")} />
+          </div>
         </Field>
         {autoCheck && (
           <Field label="Check interval" sub="How often to check availability">
@@ -188,8 +221,13 @@ export default function SettingsPage() {
       <Section title="Data & privacy">
         <Field label="Export your data" sub="Download a JSON export of your watchlist and settings">
           <button
-            onClick={handleExport}
-            className="inline-flex items-center gap-2 h-8 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
+            onClick={plan === "pro" ? handleExport : () => alert("Upgrade to Pro to export your data")}
+            className={cn(
+              "inline-flex items-center gap-2 h-8 px-3 rounded-[4px] border text-sm transition-colors duration-150",
+              plan === "pro"
+                ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700"
+                : "bg-zinc-900 border-zinc-800 text-zinc-600 cursor-not-allowed"
+            )}
           >
             <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
             Export

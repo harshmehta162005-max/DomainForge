@@ -19,6 +19,7 @@ import {
   Bell,
   BellOff,
   Info,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { WatchlistItem } from "@/types/dashboard"
@@ -344,20 +345,51 @@ function CheckButton({ domain, onUpdate }: {
   )
 }
 
-function AlertButton({ domain, alertEnabled }: {
-  domain: string
-  alertEnabled: boolean
+function AlertButton({ item }: {
+  item: WatchlistItem
 }) {
   const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
   const router = useRouter()
 
-  const toggleAlert = async () => {
+  const [frequency, setFrequency] = useState(item.notify_frequency)
+  const [prefs, setPrefs] = useState(item.notification_preferences)
+
+  const handleSave = async () => {
     setLoading(true)
     try {
       const res = await fetch("/api/watchlist", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain, alert_enabled: !alertEnabled }),
+        body: JSON.stringify({ 
+          domain: item.domain, 
+          alert_enabled: true,
+          notify_frequency: frequency,
+          notification_preferences: prefs
+        }),
+      })
+      if (res.ok) {
+        setOpen(false)
+        router.refresh()
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleAlert = async () => {
+    // If it's disabled, clicking the bell opens the settings to enable it.
+    if (!item.alert_enabled) {
+      setOpen(true)
+      return
+    }
+    // If it's enabled, clicking the bell disables it.
+    setLoading(true)
+    try {
+      const res = await fetch("/api/watchlist", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: item.domain, alert_enabled: false }),
       })
       if (res.ok) {
         router.refresh()
@@ -368,23 +400,109 @@ function AlertButton({ domain, alertEnabled }: {
   }
 
   return (
-    <button
-      onClick={toggleAlert}
-      disabled={loading}
-      title={alertEnabled ? "Disable email alerts" : "Enable email alerts"}
-      className={cn(
-        "h-7 w-7 flex items-center justify-center rounded-md transition-all duration-200 disabled:opacity-50 active:scale-95 border",
-        alertEnabled ? "text-cyan-400 bg-cyan-950/20 border-cyan-900/30 hover:bg-cyan-900/40 hover:border-cyan-800" : "text-zinc-500 bg-zinc-800/30 border-zinc-800 hover:text-zinc-300 hover:bg-zinc-700 hover:border-zinc-600"
-      )}
-    >
-      {loading ? (
-        <RefreshCw className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
-      ) : alertEnabled ? (
-        <Bell className="h-3.5 w-3.5" strokeWidth={1.5} />
-      ) : (
-        <BellOff className="h-3.5 w-3.5" strokeWidth={1.5} />
-      )}
-    </button>
+    <>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={toggleAlert}
+          disabled={loading}
+          title={item.alert_enabled ? "Disable email alerts" : "Enable email alerts"}
+          className={cn(
+            "h-7 w-7 flex items-center justify-center rounded-md transition-all duration-200 disabled:opacity-50 active:scale-95 border",
+            item.alert_enabled ? "text-cyan-400 bg-cyan-950/20 border-cyan-900/30 hover:bg-cyan-900/40 hover:border-cyan-800" : "text-zinc-500 bg-zinc-800/30 border-zinc-800 hover:text-zinc-300 hover:bg-zinc-700 hover:border-zinc-600"
+          )}
+        >
+          {loading ? (
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+          ) : item.alert_enabled ? (
+            <Bell className="h-3.5 w-3.5" strokeWidth={1.5} />
+          ) : (
+            <BellOff className="h-3.5 w-3.5" strokeWidth={1.5} />
+          )}
+        </button>
+        {item.alert_enabled && (
+          <button
+            onClick={() => setOpen(true)}
+            title="Notification Settings"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-zinc-400 bg-zinc-800/30 border border-zinc-700/50 hover:bg-zinc-700 hover:text-zinc-200 transition-all duration-200 active:scale-95"
+          >
+            <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
+        )}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl p-0 overflow-hidden sm:rounded-xl">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="text-xl text-zinc-100 flex items-center gap-2">
+              <Bell className="h-5 w-5 text-cyan-400" />
+              Alert Settings for <span className="text-cyan-400">{item.domain}</span>
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 mt-2 text-[15px]">
+              Configure when and how often you want to be notified about changes to this domain.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6 space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-zinc-300">Notify me about:</h3>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  checked={prefs.availability}
+                  onChange={(e) => setPrefs({...prefs, availability: e.target.checked})}
+                  className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 accent-cyan-500" 
+                />
+                <span className="text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors">Domain becomes Available</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  checked={prefs.price_drop}
+                  onChange={(e) => setPrefs({...prefs, price_drop: e.target.checked})}
+                  className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 accent-cyan-500" 
+                />
+                <span className="text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors">Price Drops</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  checked={prefs.expiration}
+                  onChange={(e) => setPrefs({...prefs, expiration: e.target.checked})}
+                  className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 accent-cyan-500" 
+                />
+                <span className="text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors">Upcoming Expirations (30, 15, 7, 3 days)</span>
+              </label>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-zinc-300">Frequency:</h3>
+              <select 
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value as any)}
+                className="w-full h-10 px-3 bg-zinc-950 border border-zinc-800 rounded-md text-sm text-zinc-300 focus:outline-none focus:border-zinc-700"
+              >
+                <option value="immediate">Immediate (As soon as detected)</option>
+                <option value="daily">Daily Digest Max (Once a day)</option>
+                <option value="weekly">Weekly Digest Max (Once a week)</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter className="border-t border-zinc-800 bg-zinc-950/50 p-6 sm:justify-end gap-3">
+            <button
+              onClick={() => setOpen(false)}
+              className="h-10 px-4 rounded-md text-sm font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="h-10 px-4 rounded-md text-sm font-medium bg-cyan-600 hover:bg-cyan-500 text-white transition-colors flex items-center gap-2 min-w-[100px] justify-center"
+            >
+              {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Save Settings"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -836,7 +954,7 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                           </a>
                         )}
                       </div>
-                      <AlertButton domain={item.domain} alertEnabled={item.alert_enabled} />
+                      <AlertButton item={item} />
                       <RemoveButton onClick={() => setDeleteTarget(item.domain)} />
                     </div>
                   </td>
@@ -894,7 +1012,7 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <AlertButton domain={item.domain} alertEnabled={item.alert_enabled} />
+                  <AlertButton item={item} />
                   <RemoveButton onClick={() => setDeleteTarget(item.domain)} />
                 </div>
               </div>

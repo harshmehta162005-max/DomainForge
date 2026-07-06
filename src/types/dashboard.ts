@@ -13,6 +13,13 @@ export const WatchlistItemSchema = z.object({
   createdAt: z.string(),
   expiresAt: z.string().nullable(),
   alert_enabled: z.boolean().default(true),
+  last_alerted_at: z.string().nullable().optional(),
+  notify_frequency: z.enum(['immediate', 'daily', 'weekly']).default('immediate'),
+  notification_preferences: z.object({
+    availability: z.boolean(),
+    price_drop: z.boolean(),
+    expiration: z.boolean(),
+  }).default({ availability: true, price_drop: true, expiration: true }),
   priceEstimate: z.string().nullable(),
   priceHistory: z.array(z.number()), // sparkline data
   socialX: z.string().nullable(),    // @handle or null

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { computePromptCacheKey, getCachedGeneration, setCachedGeneration } from "@/lib/domain/cache"
 import { runGenerationPipeline, type PipelineRequest } from "@/lib/domain/pipeline"
+import { createClient } from "@/lib/supabase/server"
 
 // ─── Request Schema ───────────────────────────────────────────────────────────
 
@@ -73,6 +74,23 @@ export async function POST(request: Request) {
   }
 
   const req: GenerateRequest = parsed.data
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  let isPro = false;
+  if (user) {
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('plan')
+      .eq('user_id', user.id)
+      .single()
+    isPro = settings?.plan === 'pro';
+  }
+
+  if (!isPro && req.count > 5) {
+    req.count = 5;
+  }
 
   const cacheKeyInput = normalizeForCacheKey(req)
   const cacheKey = await computePromptCacheKey(cacheKeyInput)

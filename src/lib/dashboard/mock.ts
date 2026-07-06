@@ -25,6 +25,8 @@ export const MOCK_WATCHLIST: WatchlistItem[] = [
     socialXAvailable: true,
     socialIgAvailable: false,
     alert_enabled: true,
+    notify_frequency: "immediate",
+    notification_preferences: { availability: true, price_drop: true, expiration: true },
     checkingNow: false,
   },
   {
@@ -43,6 +45,8 @@ export const MOCK_WATCHLIST: WatchlistItem[] = [
     socialXAvailable: false,
     socialIgAvailable: false,
     alert_enabled: true,
+    notify_frequency: "immediate",
+    notification_preferences: { availability: true, price_drop: true, expiration: true },
     checkingNow: false,
   },
   {
@@ -61,6 +65,8 @@ export const MOCK_WATCHLIST: WatchlistItem[] = [
     socialXAvailable: true,
     socialIgAvailable: true,
     alert_enabled: true,
+    notify_frequency: "immediate",
+    notification_preferences: { availability: true, price_drop: true, expiration: true },
     checkingNow: false,
   },
   {
@@ -79,6 +85,8 @@ export const MOCK_WATCHLIST: WatchlistItem[] = [
     socialXAvailable: null,
     socialIgAvailable: null,
     alert_enabled: true,
+    notify_frequency: "immediate",
+    notification_preferences: { availability: true, price_drop: true, expiration: true },
     checkingNow: false,
   },
   {
@@ -97,6 +105,8 @@ export const MOCK_WATCHLIST: WatchlistItem[] = [
     socialXAvailable: true,
     socialIgAvailable: true,
     alert_enabled: true,
+    notify_frequency: "immediate",
+    notification_preferences: { availability: true, price_drop: true, expiration: true },
     checkingNow: false,
   },
   {
@@ -115,6 +125,8 @@ export const MOCK_WATCHLIST: WatchlistItem[] = [
     socialXAvailable: false,
     socialIgAvailable: null,
     alert_enabled: true,
+    notify_frequency: "immediate",
+    notification_preferences: { availability: true, price_drop: true, expiration: true },
     checkingNow: false,
   },
   {
@@ -133,6 +145,8 @@ export const MOCK_WATCHLIST: WatchlistItem[] = [
     socialXAvailable: true,
     socialIgAvailable: false,
     alert_enabled: true,
+    notify_frequency: "immediate",
+    notification_preferences: { availability: true, price_drop: true, expiration: true },
     checkingNow: false,
   },
   {
@@ -151,6 +165,8 @@ export const MOCK_WATCHLIST: WatchlistItem[] = [
     socialXAvailable: null,
     socialIgAvailable: null,
     alert_enabled: true,
+    notify_frequency: "immediate",
+    notification_preferences: { availability: true, price_drop: true, expiration: true },
     checkingNow: true,
   },
 ]
