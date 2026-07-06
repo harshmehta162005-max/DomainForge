@@ -105,9 +105,15 @@ export default function GeneratePage() {
     }
   }
 
-  const handleBack = () => {
+  const handleBack = async () => {
     reset()
-    router.push("/")
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      router.push("/dashboard")
+    } else {
+      router.push("/")
+    }
   }
 
   const handleSave = async (suggestion: DomainSuggestion) => {

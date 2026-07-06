@@ -74,7 +74,7 @@ export default async function ShortlistPage() {
             When you find a domain you love, click ★ Save to add it here.
           </p>
           <a
-            href="/"
+            href="/generator"
             className="inline-flex items-center h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
           >
             Generate names →

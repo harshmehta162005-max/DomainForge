@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { SignOutButton } from "./SignOutButton"
+import { NotificationBell } from "./NotificationBell"
 
 interface HeaderProps {
   showNewSearch?: boolean
@@ -58,7 +59,8 @@ export async function Header({ showNewSearch = false }: HeaderProps) {
               >
                 Dashboard
               </Link>
-              <span className="text-xs text-zinc-600 font-mono hidden sm:block">
+              <NotificationBell />
+              <span className="text-xs text-zinc-600 font-mono hidden sm:block ml-2">
                 {displayEmail}
               </span>
               <SignOutButton />

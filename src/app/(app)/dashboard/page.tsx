@@ -110,15 +110,24 @@ export default async function DashboardPage() {
     })
   }
 
-  // Dynamically generate real activity feed based on created_at timestamps
-  const activityFeed = watchlistItems.slice(0, 5).map(i => ({
-    id: i.id,
-    type: "domain_saved" as const,
-    domain: i.domain,
-    message: "Saved domain to watchlist",
-    timestamp: new Date(i.createdAt).toISOString(),
-  }))
+  // Dynamically fetch real activity feed from activity_history
+  const { data: dashboardHistory } = await supabase
+    .from("activity_history")
+    .select("id, domain, event_type, note, created_at")
+    .eq("user_id", user!.id)
+    .neq("event_type", "status_changed")
+    .neq("event_type", "price_drop")
+    .neq("event_type", "expiring")
+    .order("created_at", { ascending: false })
+    .limit(5)
 
+  const activityFeed = (dashboardHistory ?? []).map(i => ({
+    id: i.id,
+    type: "domain_saved" as const, // Map to existing union type in the component
+    domain: i.domain,
+    message: i.note || "Activity",
+    timestamp: new Date(i.created_at).toISOString(),
+  }))
   const stats = {
     totalDomains: watchlistItems.length + (shortlistCount || 0),
     inWatchlist: watchlistItems.length,

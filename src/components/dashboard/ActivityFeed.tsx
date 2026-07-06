@@ -38,6 +38,19 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ events }: ActivityFeedProps) {
+  if (events.length === 0) {
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
+        <div className="px-4 py-3 border-b border-zinc-800">
+          <h2 className="text-sm font-medium text-zinc-200">Recent activity</h2>
+        </div>
+        <div className="px-4 py-8 text-center">
+          <p className="text-sm text-zinc-500">No recent activity found.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
       <div className="px-4 py-3 border-b border-zinc-800">
@@ -52,7 +65,6 @@ export function ActivityFeed({ events }: ActivityFeedProps) {
 
           return (
             <li key={event.id} className="flex gap-3 px-4 py-3 group hover:bg-zinc-800/20 transition-colors duration-100">
-              {/* Icon + timeline line */}
               <div className="relative flex-shrink-0 flex flex-col items-center">
                 <div className={cn(
                   "h-6 w-6 rounded-[4px] flex items-center justify-center flex-shrink-0",
@@ -65,7 +77,6 @@ export function ActivityFeed({ events }: ActivityFeedProps) {
                 )}
               </div>
 
-              {/* Content */}
               <div className="flex-1 min-w-0 pb-1">
                 <p className="text-xs text-zinc-300 leading-5">
                   <span className="font-mono text-zinc-100">{event.domain}</span>
@@ -84,7 +95,6 @@ export function ActivityFeed({ events }: ActivityFeedProps) {
                 )}
               </div>
 
-              {/* Timestamp */}
               <span className="text-xs text-zinc-600 whitespace-nowrap flex-shrink-0 pt-0.5">
                 {timeAgo(event.timestamp)}
               </span>

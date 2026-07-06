@@ -76,6 +76,16 @@ export async function GET(request: Request) {
               alert_enabled: false // turn off alert after sending
             })
             .eq("id", item.id)
+            
+          await supabase
+            .from("activity_history")
+            .insert({
+              user_id: item.user_id,
+              domain: item.domain,
+              event_type: "status_changed",
+              note: `${item.domain} is now available!`,
+              is_read: false
+            })
         }
       }
     } else if (result && result.status !== item.status) {

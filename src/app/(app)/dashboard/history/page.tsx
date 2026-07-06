@@ -22,6 +22,9 @@ export default async function HistoryPage() {
     .from("activity_history")
     .select("id, domain, event_type, note, created_at")
     .eq("user_id", user!.id)
+    .neq("event_type", "status_changed")
+    .neq("event_type", "price_drop")
+    .neq("event_type", "expiring")
     .order("created_at", { ascending: false })
     .limit(30)
 

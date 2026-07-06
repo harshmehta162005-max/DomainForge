@@ -5,6 +5,7 @@ import { Search, Bell, User, LogOut, Settings, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { NotificationBell } from "@/components/layout/NotificationBell"
 
 interface TopBarProps {
   userEmail?: string | null
@@ -142,15 +143,7 @@ export function TopBar({ userEmail }: TopBarProps) {
         {/* Right side */}
         <div className="flex items-center gap-1">
           {/* Notifications */}
-          <button
-            id="notification-bell"
-            className="relative h-8 w-8 flex items-center justify-center rounded-[4px] text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors duration-150"
-            title="Notifications"
-          >
-            <Bell className="h-4 w-4" strokeWidth={1.5} />
-            {/* Badge */}
-            <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-cyan-400" />
-          </button>
+          <NotificationBell />
 
           {/* User avatar */}
           <div className="relative">

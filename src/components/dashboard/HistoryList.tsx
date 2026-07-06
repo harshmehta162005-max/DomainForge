@@ -71,7 +71,7 @@ export function HistoryList({ initialEvents }: { initialEvents: HistoryEvent[] }
           <div className="px-6 py-16 text-center">
             <p className="text-sm text-zinc-500 mb-4">No history found for this period.</p>
             <a
-              href="/"
+              href="/generator"
               className="inline-flex items-center h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150"
             >
               Generate names →

@@ -121,7 +121,15 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("watchlist")
     .upsert(
-      { user_id: user.id, domain, status, score, tags, price_estimate },
+      { 
+        user_id: user.id, 
+        domain, 
+        status, 
+        score, 
+        tags, 
+        price_estimate,
+        created_at: new Date().toISOString()
+      },
       { onConflict: "user_id,domain", ignoreDuplicates: false },
     )
     .select("id")
@@ -311,6 +319,17 @@ export async function PATCH(request: Request) {
       { error: "Failed to update domain. Try again.", code: "DB_ERROR" },
       { status: 500 },
     )
+  }
+
+  // If the status was updated (e.g. background check finished after quick-add), fix the history note
+  if (updates.status) {
+    await supabase
+      .from("activity_history")
+      .update({ note: `Saved to watchlist — ${updates.status}` })
+      .eq("user_id", user.id)
+      .eq("domain", domain)
+      .eq("event_type", "saved")
+      .like("note", "%unknown%")
   }
 
   return NextResponse.json({ updated: domain })

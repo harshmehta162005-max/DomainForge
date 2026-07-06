@@ -98,6 +98,15 @@ export async function POST(request: Request) {
     )
   }
 
+  // Log activity
+  await supabase.from("activity_history").insert({
+    user_id: user.id,
+    domain,
+    event_type: "saved",
+    note: `Shortlisted — ${status}`,
+    is_read: false
+  })
+
   return NextResponse.json({ id: data.id, domain }, { status: 201 })
 }
 
@@ -146,6 +155,15 @@ export async function DELETE(request: Request) {
       { status: 500 },
     )
   }
+
+  // Log activity
+  await supabase.from("activity_history").insert({
+    user_id: user.id,
+    domain: parsed.data.domain,
+    event_type: "removed",
+    note: `Removed from shortlist`,
+    is_read: false
+  })
 
   return NextResponse.json({ removed: parsed.data.domain })
 }

@@ -7,34 +7,25 @@ import {
   Section,
   Text,
   Button,
+  Img,
   Hr,
   Preview,
 } from '@react-email/components';
 
-interface WeeklyDigestEmailProps {
+interface AvailabilityAlertEmailProps {
   userName: string;
+  domain: string;
   appUrl: string;
-  stats: {
-    total: number;
-    available: number;
-    expiringSoon: number;
-    recentlyChanged: number;
-  };
 }
 
-export const WeeklyDigestEmail: React.FC<Readonly<WeeklyDigestEmailProps>> = ({
+export const AvailabilityAlertEmail: React.FC<Readonly<AvailabilityAlertEmailProps>> = ({
   userName = 'User',
+  domain = 'example.com',
   appUrl = 'http://localhost:3000',
-  stats = {
-    total: 0,
-    available: 0,
-    expiringSoon: 0,
-    recentlyChanged: 0,
-  },
 }) => (
   <Html>
     <Head />
-    <Preview>Your DomainForge Weekly Digest</Preview>
+    <Preview>Good news! {domain} is now available to register.</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
@@ -42,26 +33,14 @@ export const WeeklyDigestEmail: React.FC<Readonly<WeeklyDigestEmailProps>> = ({
         </Section>
         
         <Section style={content}>
-          <Text style={h1}>Weekly Digest</Text>
+          <Text style={h1}>Domain Available!</Text>
           <Text style={text}>Hi {userName},</Text>
           <Text style={text}>
-            Here is your weekly summary of the domains you are tracking in your watchlist.
+            We have been monitoring your watchlist, and great news—the domain <strong>{domain}</strong> has just changed its status to <strong>Available</strong>.
           </Text>
-          
-          <Section style={statsBox}>
-            <Text style={statRow}>
-              <strong>Total Monitored:</strong> {stats.total}
-            </Text>
-            <Text style={statRow}>
-              <strong>Available Now:</strong> {stats.available}
-            </Text>
-            <Text style={statRow}>
-              <strong>Status Changed This Week:</strong> {stats.recentlyChanged}
-            </Text>
-            <Text style={statRow}>
-              <strong>Expiring in &lt; 30 Days:</strong> {stats.expiringSoon}
-            </Text>
-          </Section>
+          <Text style={text}>
+            If you want to secure this domain, we recommend registering it as soon as possible before someone else does.
+          </Text>
           
           <Section style={buttonContainer}>
             <Button
@@ -70,12 +49,12 @@ export const WeeklyDigestEmail: React.FC<Readonly<WeeklyDigestEmailProps>> = ({
               style={button}
               href={`${appUrl}/dashboard/watchlist`}
             >
-              View Full Dashboard
+              Go to Watchlist
             </Button>
           </Section>
           
           <Text style={footerText}>
-            You received this email because you have "Weekly Digest" turned on in your DomainForge settings. 
+            You received this email because you have "Availability Alerts" turned on in your DomainForge settings. 
             You can disable these alerts in your <a href={`${appUrl}/dashboard/settings`} style={link}>account settings</a>.
           </Text>
         </Section>
@@ -135,20 +114,6 @@ const text = {
   margin: '0 0 16px',
 };
 
-const statsBox = {
-  backgroundColor: '#09090b',
-  border: '1px solid #27272a',
-  borderRadius: '6px',
-  padding: '24px',
-  margin: '24px 0',
-};
-
-const statRow = {
-  color: '#fafafa',
-  fontSize: '15px',
-  margin: '0 0 12px 0',
-};
-
 const buttonContainer = {
   margin: '32px 0',
   textAlign: 'center' as const,
@@ -189,4 +154,4 @@ const link = {
   textDecoration: 'underline',
 };
 
-export default WeeklyDigestEmail;
+export default AvailabilityAlertEmail;

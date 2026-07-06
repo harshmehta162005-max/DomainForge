@@ -21,6 +21,7 @@ const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization")
+  
   if (
     env.CRON_SECRET &&
     authHeader !== `Bearer ${env.CRON_SECRET}`
@@ -35,14 +36,35 @@ export async function GET(request: Request) {
       .eq("alert_enabled", true)
 
     if (watchlistError) throw watchlistError
-    if (!watchlistEntries || watchlistEntries.length === 0) {
+
+    const { data: shortlistEntries, error: shortlistError } = await supabaseAdmin
+      .from("shortlist")
+      .select("id, domain, status, user_id, expires_at, last_alerted_at, alert_enabled")
+      // alert_enabled column was just added, some rows might not have it or default to true
+      // To be safe, we fetch all and filter in memory, or use eq if we're sure
+      .eq("alert_enabled", true)
+
+    if (shortlistError) throw shortlistError
+
+    const combinedEntries = [
+      ...(watchlistEntries || []).map(e => ({ ...e, type: "watchlist" as const })),
+      ...(shortlistEntries || []).map(e => ({
+        ...e,
+        type: "shortlist" as const,
+        price_estimate: null,
+        notify_frequency: "immediate",
+        notification_preferences: { availability: true, expiration: true, price_drop: false }
+      }))
+    ]
+
+    if (combinedEntries.length === 0) {
       return NextResponse.json({ message: "No active alerts to check." })
     }
 
-    const uniqueDomains = Array.from(new Set(watchlistEntries.map((e) => e.domain)))
+    const uniqueDomains = Array.from(new Set(combinedEntries.map((e) => e.domain)))
     const availabilityResults = await checkDomainsAvailability(uniqueDomains, 5)
 
-    const userIds = Array.from(new Set(watchlistEntries.map((e) => e.user_id)))
+    const userIds = Array.from(new Set(combinedEntries.map((e) => e.user_id)))
     const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
     
     const userMap = new Map<string, string>()
@@ -56,7 +78,7 @@ export async function GET(request: Request) {
     const emailsToSend: any[] = []
     const now = new Date()
 
-    for (const entry of watchlistEntries) {
+    for (const entry of combinedEntries) {
       const result = availabilityResults.get(entry.domain)
       if (!result) continue
 
@@ -89,11 +111,6 @@ export async function GET(request: Request) {
         alertType = "available"
         newAlertEnabled = false
       }
-      // Condition B: Price Drop (simulated here since availability API might not return price, but if we had an aftermarket API hooked up)
-      else if (prefs.price_drop && entry.price_estimate && result.status === "taken") {
-         // Placeholder for price drop logic if `result` contained price.
-         // e.g. if (result.price < parseFloat(entry.price_estimate) * 0.9)
-      }
       // Condition C: Expiring soon (30, 15, 7, 3 days)
       else if (prefs.expiration && result.status === "taken" && result.expiresAt) {
         const expiresAtDate = new Date(result.expiresAt)
@@ -109,6 +126,10 @@ export async function GET(request: Request) {
           }
         }
       }
+      // Condition B: Price Drop (moved to bottom so it doesn't swallow expiration if empty)
+      else if (prefs.price_drop && entry.price_estimate && result.status === "taken") {
+         // Placeholder for price drop logic if `result` contained price.
+      }
 
       const needsDbUpdate = 
         entry.status !== result.status || 
@@ -119,13 +140,29 @@ export async function GET(request: Request) {
       if (needsDbUpdate) {
         updates.push(
           supabaseAdmin
-            .from("watchlist")
+            .from(entry.type === "shortlist" ? "shortlist" : "watchlist")
             .update({
               status: result.status,
               expires_at: result.expiresAt || null,
               ...(shouldAlert ? { last_alerted_at: now.toISOString(), alert_enabled: newAlertEnabled } : {})
             })
             .eq("id", entry.id)
+        )
+      }
+      
+      if (shouldAlert) {
+        updates.push(
+          supabaseAdmin
+            .from("activity_history")
+            .insert({
+              user_id: entry.user_id,
+              domain: entry.domain,
+              event_type: alertType === "available" ? "status_changed" : alertType,
+              note: alertType === "available" 
+                ? `${entry.domain} is now available!` 
+                : (alertType === "expiring" ? `${entry.domain} expires in ${extraData} days` : `Price drop detected for ${entry.domain}`),
+              is_read: false
+            })
         )
       }
 

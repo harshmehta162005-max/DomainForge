@@ -932,8 +932,8 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
 
                   {/* Actions */}
                   <td className="px-4 py-4">
-                    <div className="flex items-center justify-center gap-1 transition-opacity duration-150 w-[110px] mx-auto">
-                      <div className="w-[38px] flex justify-center">
+                    <div className="flex items-center justify-center gap-1.5 transition-opacity duration-150 min-w-[140px] mx-auto">
+                      <div className="min-w-[56px] flex justify-center">
                         {item.status === "available" ? (
                           <a
                             href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}

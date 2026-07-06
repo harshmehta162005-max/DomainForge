@@ -293,7 +293,7 @@ export function QuickActions() {
       <div className="flex flex-wrap items-center gap-2">
         {/* Primary CTA */}
         <Link
-          href="/"
+          href="/generator"
           id="quick-action-generate"
           className="inline-flex items-center gap-2 h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
         >
