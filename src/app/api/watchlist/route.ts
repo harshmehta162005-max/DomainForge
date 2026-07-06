@@ -90,9 +90,15 @@ export async function POST(request: Request) {
 
   const { domain, status, score = 0, tags = [], price_estimate = null } = parsed.data
 
-  // Enforce Watchlist Limits
-  const MAX_LIMIT = 50
-  const WARNING_THRESHOLD = 40
+  const { data: userSettings } = await supabase
+    .from("user_settings")
+    .select("plan")
+    .eq("user_id", user.id)
+    .single()
+
+  const isPro = userSettings?.plan === "pro"
+  const MAX_LIMIT = isPro ? 500 : 50
+  const WARNING_THRESHOLD = isPro ? 450 : 40
 
   const { count, error: countError } = await supabase
     .from("watchlist")
@@ -107,7 +113,7 @@ export async function POST(request: Request) {
 
   if (currentCount >= MAX_LIMIT) {
     return NextResponse.json(
-      { error: `Free tier limit reached. You can only monitor up to ${MAX_LIMIT} domains.`, code: "LIMIT_REACHED" },
+      { error: `${isPro ? 'Pro' : 'Free tier'} limit reached. You can only monitor up to ${MAX_LIMIT} domains.`, code: "LIMIT_REACHED" },
       { status: 403 }
     )
   }
@@ -128,6 +134,14 @@ export async function POST(request: Request) {
       { status: 500 },
     )
   }
+
+  // Log to activity_history
+  await supabase.from("activity_history").insert({
+    user_id: user.id,
+    domain,
+    event_type: "saved",
+    note: `Saved to watchlist — ${status}`,
+  })
 
   // Send warning email if exactly hitting the threshold
   if (currentCount + 1 === WARNING_THRESHOLD && resend && user.email) {
@@ -196,6 +210,14 @@ export async function DELETE(request: Request) {
     )
   }
 
+  // Log to activity_history
+  await supabase.from("activity_history").insert({
+    user_id: user.id,
+    domain: parsed.data.domain,
+    event_type: "removed",
+    note: "Removed from watchlist",
+  })
+
   return NextResponse.json({ removed: parsed.data.domain })
 }
 
@@ -257,6 +279,22 @@ export async function PATCH(request: Request) {
   
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ updated: domain })
+  }
+
+  // Enforce Pro feature for auto-check (alert_enabled)
+  if (updates.alert_enabled === true) {
+    const { data: userSettings } = await supabase
+      .from("user_settings")
+      .select("plan")
+      .eq("user_id", user.id)
+      .single()
+
+    if (userSettings?.plan !== "pro") {
+      return NextResponse.json(
+        { error: "Auto-check alerts require the Pro plan.", code: "PRO_REQUIRED" },
+        { status: 403 }
+      )
+    }
   }
 
   const { data, error } = await supabase

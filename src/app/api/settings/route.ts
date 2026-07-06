@@ -6,6 +6,12 @@ const UpdateSettingsSchema = z.object({
   marketing_emails: z.boolean().optional(),
   weekly_digest: z.boolean().optional(),
   security_alerts: z.boolean().optional(),
+  notif_available: z.boolean().optional(),
+  notif_expiry: z.boolean().optional(),
+  notif_price: z.boolean().optional(),
+  default_tlds: z.string().optional(),
+  auto_check: z.boolean().optional(),
+  check_interval: z.string().optional(),
 })
 
 export async function GET() {
@@ -47,6 +53,19 @@ export async function PATCH(request: Request) {
   const parsed = UpdateSettingsSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed" }, { status: 400 })
+  }
+
+  // If trying to enable auto_check, enforce Pro plan
+  if (parsed.data.auto_check) {
+    const { data: userPlanData } = await supabase
+      .from("user_settings")
+      .select("plan")
+      .eq("user_id", user.id)
+      .single()
+
+    if (userPlanData?.plan !== "pro") {
+      return NextResponse.json({ error: "Pro plan required for auto check" }, { status: 403 })
+    }
   }
 
   const { data, error } = await supabase

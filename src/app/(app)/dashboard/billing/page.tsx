@@ -7,11 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { BorderTrail } from '@/components/ui/border-trail';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 export default function Pricing() {
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
 
   const handleUpgrade = async () => {
@@ -21,26 +24,23 @@ export default function Pricing() {
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      alert("You must be logged in to upgrade.");
+      setErrorMsg("You must be logged in to upgrade.");
       setLoading(false);
       return;
     }
 
-    // Update plan in user_settings table
+    // Upsert plan in user_settings table
     const { error } = await supabase
       .from('user_settings')
-      .update({ plan: 'pro' })
-      .eq('user_id', user.id);
+      .upsert({ user_id: user.id, plan: 'pro' }, { onConflict: 'user_id' });
 
     setLoading(false);
 
     if (error) {
       console.error(error);
-      alert("Failed to upgrade. Please try again.");
+      setErrorMsg("Failed to upgrade. Please try again.");
     } else {
-      alert("Successfully upgraded to Pro!");
-      router.push("/dashboard/settings");
-      router.refresh();
+      setShowSuccess(true);
     }
   };
 
@@ -58,11 +58,10 @@ export default function Pricing() {
 						<div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-1 font-mono text-zinc-300">Pricing</div>
 					</div>
 					<h2 className="mt-5 text-center text-2xl font-bold tracking-tighter text-zinc-100 md:text-3xl lg:text-4xl">
-						Pricing Based on Your Success
+						Upgrade to DomainForge Pro
 					</h2>
 					<p className="text-zinc-400 mt-5 text-center text-sm md:text-base">
-						We offer a single price for all our services. We believe that pricing is a critical component of any
-						successful business.
+						Unlock automated background availability checking, export capabilities, and generate up to 20 premium domains per batch.
 					</p>
 				</motion.div>
 
@@ -98,7 +97,7 @@ export default function Pricing() {
 											<Badge variant="secondary" className="bg-zinc-800 text-zinc-300">11% off</Badge>
 										</div>
 									</div>
-									<p className="text-zinc-400 text-sm">Best value for growing businesses!</p>
+									<p className="text-zinc-400 text-sm">Perfect for occasional domain hunters.</p>
 								</div>
 								<div className="mt-10 space-y-4">
 									<div className="text-zinc-400 flex items-end gap-0.5 text-xl">
@@ -135,7 +134,7 @@ export default function Pricing() {
 											<Badge className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">22% off</Badge>
 										</div>
 									</div>
-									<p className="text-zinc-400 text-sm">Unlock savings with an annual commitment!</p>
+									<p className="text-zinc-400 text-sm">Save big and secure your domain portfolio year-round!</p>
 								</div>
 								<div className="mt-10 space-y-4 relative z-10">
 									<div className="text-zinc-400 flex items-end text-xl">
@@ -163,6 +162,45 @@ export default function Pricing() {
 					</motion.div>
 				</div>
 			</div>
+
+      {/* Success Dialog */}
+      <Dialog 
+        open={showSuccess} 
+        onOpenChange={(open) => {
+          setShowSuccess(open);
+          if (!open) {
+            router.push("/dashboard/settings");
+            router.refresh();
+          }
+        }}
+      >
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-cyan-400">Welcome to Pro! 🎉</DialogTitle>
+            <DialogDescription className="text-zinc-400 mt-2">
+              Your account has been successfully upgraded to DomainForge Pro. You now have access to automated watchlist checking, data exports, and expanded AI domain generation.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter showCloseButton={false} className="border-t border-zinc-800 bg-zinc-900/50">
+            <DialogClose render={<Button className="bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-medium" />}>
+              Go to Settings
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Dialog */}
+      <Dialog open={!!errorMsg} onOpenChange={(open) => { if (!open) setErrorMsg("") }}>
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+          <DialogHeader>
+            <DialogTitle className="text-red-400">Upgrade Error</DialogTitle>
+            <DialogDescription className="text-zinc-400 mt-2">
+              {errorMsg}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter showCloseButton={true} className="border-t border-zinc-800 bg-zinc-900/50" />
+        </DialogContent>
+      </Dialog>
 		</section>
 	);
 }

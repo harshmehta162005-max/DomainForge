@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { ClassicLoader } from "@/components/ui/ClassicLoader"
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -51,6 +52,51 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   )
 }
 
+function DeleteAccountModal({ isOpen, onClose, onConfirm, isDeleting }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, isDeleting: boolean }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-[8px] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="px-6 py-5 border-b border-zinc-800 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+            <Trash2 className="h-5 w-5 text-red-500" strokeWidth={1.5} />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-zinc-100">Delete Account</h3>
+            <p className="text-sm text-zinc-500 mt-1">This action cannot be undone.</p>
+          </div>
+        </div>
+        <div className="px-6 py-5">
+          <p className="text-sm text-zinc-300">
+            Are you absolutely sure you want to permanently delete your account and all associated data? This will immediately wipe your watchlist, shortlists, history, and preferences.
+          </p>
+        </div>
+        <div className="px-6 py-4 bg-zinc-950/50 border-t border-zinc-800 flex items-center justify-end gap-3">
+          <button 
+            onClick={onClose} 
+            disabled={isDeleting}
+            className="h-9 px-4 rounded-[4px] text-sm font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="h-9 px-4 rounded-[4px] bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {isDeleting ? (
+              <>
+                <div className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                Deleting...
+              </>
+            ) : "Yes, delete my account"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── SettingsPage ─────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -58,20 +104,32 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [plan, setPlan] = useState("free")
   const [loading, setLoading] = useState(true)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    const fetchPlan = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from('user_settings').select('plan').eq('user_id', user.id).single();
-        if (data?.plan) {
-          setPlan(data.plan);
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/settings");
+        if (res.ok) {
+          const { settings } = await res.json();
+          if (settings) {
+            setPlan(settings.plan || "free");
+            setNotifAvailable(settings.notif_available ?? true);
+            setNotifExpiry(settings.notif_expiry ?? true);
+            setNotifPrice(settings.notif_price ?? false);
+            setNotifWeekly(settings.weekly_digest ?? true);
+            setDefaultTlds(settings.default_tlds || ".com,.io,.ai");
+            setAutoCheck(settings.auto_check ?? false);
+            setCheckInterval(settings.check_interval || "6h");
+          }
         }
+      } catch (err) {
+        console.error("Failed to load settings", err);
       }
       setLoading(false);
     }
-    fetchPlan();
+    fetchSettings();
   }, [])
 
   // Notification prefs
@@ -86,9 +144,32 @@ export default function SettingsPage() {
   const [checkInterval, setCheckInterval] = useState("6h")
 
   const handleSave = async () => {
-    // In production: POST /api/settings
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notif_available: notifAvailable,
+          notif_expiry: notifExpiry,
+          notif_price: notifPrice,
+          weekly_digest: notifWeekly,
+          default_tlds: defaultTlds,
+          auto_check: autoCheck,
+          check_interval: checkInterval
+        })
+      });
+
+      if (res.ok) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      } else {
+        const data = await res.json()
+        alert(`Failed to save settings: ${data.error}`)
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Failed to save settings");
+    }
   }
 
   const handleSignOut = async () => {
@@ -99,14 +180,24 @@ export default function SettingsPage() {
   }
 
   const handleExport = () => {
-    // Mock — in production generate CSV/JSON
-    const data = JSON.stringify({ note: "Export feature coming soon" }, null, 2)
-    const blob = new Blob([data], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "domainforge-export.json"
-    a.click()
+    window.location.href = "/api/export-account"
+  }
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch("/api/account", { method: "DELETE" });
+      if (res.ok) {
+        handleSignOut();
+      } else {
+        alert("Failed to delete account. Please try again or contact support.");
+        setIsDeleting(false)
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Failed to delete account.");
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -137,23 +228,23 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* Account */}
-      <Section title="Account">
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24">
+          <ClassicLoader />
+        </div>
+      ) : (
+        <>
+          {/* Account */}
+          <Section title="Account">
         <Field label="Account type" sub="Your current plan">
           <div className="flex items-center gap-3">
-            {loading ? (
-              <span className="text-xs px-2 py-1 rounded-[2px] bg-zinc-800 text-zinc-500 font-mono">Loading...</span>
-            ) : (
-              <>
-                <span className={cn("text-xs px-2 py-1 rounded-[2px] font-mono border", plan === "pro" ? "bg-cyan-950 border-cyan-800 text-cyan-400" : "bg-zinc-800 border-zinc-700 text-zinc-300")}>
-                  {plan === "pro" ? "Pro tier" : "Free tier"}
-                </span>
-                {plan === "free" && (
-                  <Link href="/dashboard/billing" className="text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2">
-                    Upgrade to Pro
-                  </Link>
-                )}
-              </>
+            <span className={cn("text-xs px-2 py-1 rounded-[2px] font-mono border", plan === "pro" ? "bg-cyan-950 border-cyan-800 text-cyan-400" : "bg-zinc-800 border-zinc-700 text-zinc-300")}>
+              {plan === "pro" ? "Pro tier" : "Free tier"}
+            </span>
+            {plan === "free" && (
+              <Link href="/dashboard/billing" className="text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2">
+                Upgrade to Pro
+              </Link>
             )}
           </div>
         </Field>
@@ -239,7 +330,7 @@ export default function SettingsPage() {
           sub="Permanently delete your account and all data. This cannot be undone."
         >
           <button
-            onClick={() => window.confirm("This will permanently delete your account. Are you absolutely sure?") && alert("For safety, contact support to delete your account.")}
+            onClick={() => setIsDeleteModalOpen(true)}
             className="inline-flex items-center gap-2 h-8 px-3 rounded-[4px] bg-zinc-950 border border-red-900 text-sm text-red-500 hover:text-red-400 hover:bg-red-950/30 transition-colors duration-150"
           >
             <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -247,6 +338,8 @@ export default function SettingsPage() {
           </button>
         </Field>
       </Section>
+      </>
+      )}
 
       {/* About */}
       <div className="flex items-center justify-between px-1 text-xs text-zinc-700">
@@ -257,6 +350,13 @@ export default function SettingsPage() {
           <a href="#" className="hover:text-zinc-400 transition-colors">Support</a>
         </div>
       </div>
+
+      <DeleteAccountModal 
+        isOpen={isDeleteModalOpen}
+        isDeleting={isDeleting}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }
