@@ -65,8 +65,6 @@ export const WeeklyDigestEmail: React.FC<Readonly<WeeklyDigestEmailProps>> = ({
           
           <Section style={buttonContainer}>
             <Button
-              pX={20}
-              pY={12}
               style={button}
               href={`${appUrl}/dashboard/watchlist`}
             >
@@ -163,6 +161,7 @@ const button = {
   textDecoration: 'none',
   textAlign: 'center' as const,
   display: 'inline-block',
+  padding: '12px 20px',
 };
 
 const hr = {

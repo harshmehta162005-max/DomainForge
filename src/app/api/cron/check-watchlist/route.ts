@@ -112,8 +112,9 @@ export async function GET(request: Request) {
         newAlertEnabled = false
       }
       // Condition C: Expiring soon (30, 15, 7, 3 days)
-      else if (prefs.expiration && result.status === "taken" && result.expiresAt) {
-        const expiresAtDate = new Date(result.expiresAt)
+      // Fall back to the stored entry.expires_at if RDAP didn't return one this run
+      else if (prefs.expiration && result.status === "taken" && (result.expiresAt || entry.expires_at)) {
+        const expiresAtDate = new Date((result.expiresAt ?? entry.expires_at) as string)
         const daysUntilExpiry = Math.floor((expiresAtDate.getTime() - now.getTime()) / (1000 * 3600 * 24))
         
         // Only alert exactly on or near these thresholds if we haven't alerted in the last few days
@@ -194,7 +195,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      checked: watchlistEntries.length,
+      checked: combinedEntries.length,
       alertsSent: emailsToSend.length,
     })
   } catch (error: any) {

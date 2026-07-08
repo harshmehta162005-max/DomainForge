@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
 import { env } from "@/lib/env"
 import { Resend } from "resend"
 import * as React from "react"
 import { WeeklyDigestEmail } from "@/emails/WeeklyDigestEmail"
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
+
+const supabaseAdmin = createClient(
+  env.NEXT_PUBLIC_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY || "",
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+)
 
 export async function GET(request: Request) {
   // 1. Authenticate the cron request
@@ -14,7 +25,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  const supabase = supabaseAdmin
 
   // 2. Fetch all users who have weekly_digest enabled
   const { data: usersSettings, error: settingsError } = await supabase
@@ -31,7 +42,7 @@ export async function GET(request: Request) {
   // 3. Process each user
   for (const user of usersSettings) {
     // Get user email
-    const { data: authUser } = await supabase.auth.admin.getUserById(user.user_id)
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user.user_id)
     if (!authUser?.user?.email) continue
 
     // Get watchlist stats
