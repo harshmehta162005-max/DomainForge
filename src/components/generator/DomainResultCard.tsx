@@ -7,6 +7,7 @@ import { useState, useEffect } from "react"
 import type { DomainSuggestion } from "@/types/domain"
 import { createClient } from "@/lib/supabase/client"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
+import { ProUpgradeDialog } from "@/components/ui/ProUpgradeDialog"
 
 // ─── Availability badge ───────────────────────────────────────────────────────
 
@@ -168,6 +169,7 @@ export function DomainResultCard({
   const [watchlisting, setWatchlisting] = useState(false)
   const [watchlisted, setWatchlisted] = useState(false)
   const [watchlistError, setWatchlistError] = useState<string | null>(null)
+  const [proDialogOpen, setProDialogOpen] = useState(false)
 
   const handleWatchlist = async () => {
     setWatchlisting(true)
@@ -213,6 +215,8 @@ export function DomainResultCard({
             }
           }
         }).catch(() => {})
+      } else if (res.status === 403) {
+        setProDialogOpen(true)
       } else {
         const data = await res.json().catch(() => ({})) as { error?: string; detail?: string }
         const msg = data.detail ?? data.error ?? `HTTP ${res.status}`
@@ -278,9 +282,6 @@ export function DomainResultCard({
               : <Eye className="h-3.5 w-3.5" strokeWidth={1.5} />
             }
           </button>
-          {watchlistError && (
-            <span className="text-xs text-red-400 ml-1">{watchlistError}</span>
-          )}
           <RegistrarDropdown
             suggestion={suggestion}
             className="ml-auto"
@@ -293,6 +294,7 @@ export function DomainResultCard({
 
   // Grid view
   return (
+    <>
     <div className={cn(
       "bg-zinc-900 border rounded-[4px] p-4 group flex flex-col gap-3 transition-all duration-150",
       "hover:border-cyan-400/40 hover:bg-zinc-800/50",
@@ -371,9 +373,6 @@ export function DomainResultCard({
           }
           {watchlisted ? "Watching" : "Watch"}
         </button>
-        {watchlistError && (
-          <span className="text-xs text-red-400">{watchlistError}</span>
-        )}
 
         <RegistrarDropdown
           suggestion={suggestion}
@@ -382,5 +381,12 @@ export function DomainResultCard({
         />
       </div>
     </div>
+
+    <ProUpgradeDialog
+      open={proDialogOpen}
+      onOpenChange={setProDialogOpen}
+      featureName="Watchlist"
+    />
+  </>
   )
 }

@@ -10,7 +10,6 @@ export default function NotificationSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState({
-    marketing_emails: false,
     weekly_digest: true,
     security_alerts: true,
   })
@@ -18,12 +17,11 @@ export default function NotificationSettingsPage() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await fetch("/api/settings/notifications")
+        const res = await fetch("/api/settings")
         if (res.ok) {
           const data = await res.json()
           if (data.settings) {
             setSettings({
-              marketing_emails: data.settings.marketing_emails,
               weekly_digest: data.settings.weekly_digest,
               security_alerts: data.settings.security_alerts,
             })
@@ -41,7 +39,7 @@ export default function NotificationSettingsPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch("/api/settings/notifications", {
+      const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
@@ -125,30 +123,6 @@ export default function NotificationSettingsPage() {
                     className="sr-only peer"
                     checked={settings.security_alerts}
                     disabled
-                  />
-                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                </label>
-              </div>
-            </div>
-
-            {/* Marketing / Product Updates */}
-            <div className="p-6 flex items-start gap-4 hover:bg-zinc-800/30 transition-colors">
-              <div className="h-10 w-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0">
-                <Bell className="h-5 w-5 text-zinc-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-base font-semibold text-zinc-100">Product Updates & Tips</h3>
-                <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-                  Occasional updates about new DomainForge features, domain investing strategies, and promotional offers.
-                </p>
-              </div>
-              <div className="ml-4 flex items-center h-10">
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings.marketing_emails}
-                    onChange={(e) => setSettings({ ...settings, marketing_emails: e.target.checked })}
                   />
                   <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
                 </label>

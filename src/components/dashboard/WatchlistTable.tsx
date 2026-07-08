@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ProUpgradeDialog } from "@/components/ui/ProUpgradeDialog"
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
@@ -350,6 +351,7 @@ function AlertButton({ item }: {
 }) {
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [proDialogOpen, setProDialogOpen] = useState(false)
   const router = useRouter()
 
   const [frequency, setFrequency] = useState(item.notify_frequency)
@@ -368,6 +370,11 @@ function AlertButton({ item }: {
           notification_preferences: prefs
         }),
       })
+      if (res.status === 403) {
+        setOpen(false)
+        setProDialogOpen(true)
+        return
+      }
       if (res.ok) {
         setOpen(false)
         router.refresh()
@@ -391,6 +398,10 @@ function AlertButton({ item }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain: item.domain, alert_enabled: false }),
       })
+      if (res.status === 403) {
+        setProDialogOpen(true)
+        return
+      }
       if (res.ok) {
         router.refresh()
       }
@@ -502,6 +513,11 @@ function AlertButton({ item }: {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ProUpgradeDialog
+        open={proDialogOpen}
+        onOpenChange={setProDialogOpen}
+        featureName="Domain availability alerts"
+      />
     </>
   )
 }

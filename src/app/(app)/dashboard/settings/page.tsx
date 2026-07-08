@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ClassicLoader } from "@/components/ui/ClassicLoader"
+import { ProUpgradeDialog } from "@/components/ui/ProUpgradeDialog"
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -106,6 +107,13 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [proDialogOpen, setProDialogOpen] = useState(false)
+  const [proDialogFeature, setProDialogFeature] = useState("")
+
+  const showProDialog = (featureName: string) => {
+    setProDialogFeature(featureName)
+    setProDialogOpen(true)
+  }
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -289,7 +297,7 @@ export default function SettingsPage() {
         <Field label="Auto-check watchlist" sub={plan === "pro" ? "Automatically re-check availability on a schedule" : "Automatically re-check availability on a schedule (Pro only)"}>
           <div className="flex items-center gap-2">
             {plan === "free" && <span className="text-xs text-amber-500 bg-amber-950/30 px-1.5 py-0.5 rounded font-mono border border-amber-900/50">PRO</span>}
-            <Toggle checked={plan === "pro" ? autoCheck : false} onChange={plan === "pro" ? setAutoCheck : () => alert("Upgrade to Pro to use this feature")} />
+            <Toggle checked={plan === "pro" ? autoCheck : false} onChange={plan === "pro" ? setAutoCheck : () => showProDialog("Auto-check watchlist")} />
           </div>
         </Field>
         {autoCheck && (
@@ -312,7 +320,7 @@ export default function SettingsPage() {
       <Section title="Data & privacy">
         <Field label="Export your data" sub="Download a JSON export of your watchlist and settings">
           <button
-            onClick={plan === "pro" ? handleExport : () => alert("Upgrade to Pro to export your data")}
+            onClick={plan === "pro" ? handleExport : () => showProDialog("Data export")}
             className={cn(
               "inline-flex items-center gap-2 h-8 px-3 rounded-[4px] border text-sm transition-colors duration-150",
               plan === "pro"
@@ -356,6 +364,12 @@ export default function SettingsPage() {
         isDeleting={isDeleting}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
+      />
+
+      <ProUpgradeDialog
+        open={proDialogOpen}
+        onOpenChange={setProDialogOpen}
+        featureName={proDialogFeature}
       />
     </div>
   )

@@ -81,6 +81,35 @@ export async function POST(request: Request) {
 
   const { domain, status } = parsed.data
 
+  // ── Plan limit check ───────────────────────────────────────────────────────
+  const { data: userSettings } = await supabase
+    .from("user_settings")
+    .select("plan")
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  const isPro = userSettings?.plan === "pro"
+  const SHORTLIST_LIMIT = isPro ? 200 : 20
+
+  const { count, error: countError } = await supabase
+    .from("shortlist")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+
+  if (countError) {
+    return NextResponse.json({ error: "Failed to check shortlist limit.", code: "DB_ERROR" }, { status: 500 })
+  }
+
+  if ((count ?? 0) >= SHORTLIST_LIMIT) {
+    return NextResponse.json(
+      {
+        error: `${isPro ? "Pro" : "Free tier"} shortlist limit of ${SHORTLIST_LIMIT} reached. ${!isPro ? "Upgrade to Pro for up to 200 shortlisted domains." : ""}`,
+        code: "LIMIT_REACHED",
+      },
+      { status: 403 },
+    )
+  }
+
   const { data, error } = await supabase
     .from("shortlist")
     .upsert(

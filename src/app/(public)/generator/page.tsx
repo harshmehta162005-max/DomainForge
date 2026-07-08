@@ -19,6 +19,7 @@ import {
 import { GenerateButton } from "@/components/generator/GenerateButton"
 import { ResultsArea } from "@/components/generator/ResultsArea"
 import { RightPanel } from "@/components/generator/RightPanel"
+import { ProUpgradeDialog } from "@/components/ui/ProUpgradeDialog"
 
 // ─── Session state shape ──────────────────────────────────────────────────────
 
@@ -84,6 +85,7 @@ export default function GeneratorPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [shortlist, setShortlist] = useState<DomainSuggestion[]>([])
+  const [proDialogOpen, setProDialogOpen] = useState(false)
   const hasLoaded = useRef(false)
 
   const { phase, suggestions, error, generate, reset, fallbackTriggered } = useGenerate()
@@ -153,28 +155,44 @@ export default function GeneratorPage() {
     return () => window.removeEventListener("keydown", handler)
   }, [handleGenerate])
 
-  const handleShortlist = useCallback((s: DomainSuggestion) => {
-    setShortlist(prev => {
-      const exists = prev.some(p => p.domain === s.domain)
-      
-      // Sync with backend
-      if (exists) {
-        fetch("/api/shortlist", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: s.domain }),
-        }).catch(console.error)
-        return prev.filter(p => p.domain !== s.domain)
-      } else {
-        fetch("/api/shortlist", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: s.domain, status: s.availabilityStatus }),
-        }).catch(console.error)
-        return [...prev, s]
+  const handleShortlist = useCallback(async (s: DomainSuggestion) => {
+    const exists = shortlist.some(p => p.domain === s.domain)
+
+    // Optimistic update
+    setShortlist(prev =>
+      exists ? prev.filter(p => p.domain !== s.domain) : [...prev, s]
+    )
+
+    try {
+      const res = await fetch("/api/shortlist", {
+        method: exists ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          exists
+            ? { domain: s.domain }
+            : { domain: s.domain, status: s.availabilityStatus }
+        ),
+      })
+
+      if (res.status === 403) {
+        // Revert optimistic update and show Pro dialog
+        setShortlist(prev =>
+          exists ? [...prev, s] : prev.filter(p => p.domain !== s.domain)
+        )
+        setProDialogOpen(true)
+      } else if (!res.ok) {
+        // Revert optimistic update on other errors
+        setShortlist(prev =>
+          exists ? [...prev, s] : prev.filter(p => p.domain !== s.domain)
+        )
       }
-    })
-  }, [])
+    } catch {
+      // Revert on network error
+      setShortlist(prev =>
+        exists ? [...prev, s] : prev.filter(p => p.domain !== s.domain)
+      )
+    }
+  }, [shortlist])
 
   const handleWatchlist = useCallback((_s: DomainSuggestion) => {
     // toast handled inside DomainResultCard
@@ -189,6 +207,7 @@ export default function GeneratorPage() {
   const canGenerate = session.description.trim().length >= 2
 
   return (
+    <>
     <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden">
 
       {/* ── Top bar ────────────────────────────────────────────────────────── */}
@@ -423,5 +442,12 @@ export default function GeneratorPage() {
         </div>
       )}
     </div>
+
+    <ProUpgradeDialog
+      open={proDialogOpen}
+      onOpenChange={setProDialogOpen}
+      featureName="Shortlist"
+    />
+  </>  
   )
 }

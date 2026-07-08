@@ -2,13 +2,6 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Bell, Check, ExternalLink, RefreshCcw } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -171,7 +164,7 @@ export function NotificationBell() {
                       {notif.note}
                     </p>
                     
-                    {notif.event_type === "status_changed" && (
+                    {["status_changed", "expiring", "price_drop"].includes(notif.event_type) && (
                       <Link 
                         href="/dashboard/watchlist"
                         className="ml-2 mt-1 text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity w-fit relative z-20"

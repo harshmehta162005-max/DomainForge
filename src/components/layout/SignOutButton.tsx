@@ -1,8 +1,8 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import { LogOut } from "lucide-react"
+import { useState } from "react"
+import { SignOutDialog } from "@/components/ui/SignOutDialog"
 
 /**
  * Client component for sign-out button.
@@ -10,23 +10,24 @@ import { LogOut } from "lucide-react"
  * Uses browser Supabase client (session is in cookies, cleared on sign out).
  */
 export function SignOutButton() {
-  const router = useRouter()
-  const supabase = createClient()
+  const [open, setOpen] = useState(false)
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
+  const handleSignOutClick = () => {
+    setOpen(true)
   }
 
   return (
-    <button
-      onClick={handleSignOut}
-      title="Sign out"
-      aria-label="Sign out"
-      className="flex items-center justify-center h-8 w-8 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors duration-150"
-    >
-      <LogOut className="h-3.5 w-3.5" />
-    </button>
+    <>
+      <button
+        onClick={handleSignOutClick}
+        title="Sign out"
+        aria-label="Sign out"
+        className="flex items-center justify-center h-8 w-8 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors duration-150"
+      >
+        <LogOut className="h-3.5 w-3.5" />
+      </button>
+
+      <SignOutDialog open={open} onOpenChange={setOpen} />
+    </>
   )
 }

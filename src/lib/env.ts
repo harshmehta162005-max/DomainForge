@@ -31,6 +31,11 @@ export const EnvSchema = z.object({
   // Resend API (optional — needed for watchlist email alerts)
   RESEND_API_KEY: optionalStr,
 
+  // MarkerAPI — real USPTO trademark lookup (optional — AI-only fallback when not set)
+  // Register free at https://markerapi.com (1,000 searches/month free)
+  MARKERAPI_USERNAME: optionalStr,
+  MARKERAPI_PASSWORD: optionalStr,
+
   // Upstash Redis (optional — Supabase cache table used as fallback)
   UPSTASH_REDIS_REST_URL: optionalUrl,
   UPSTASH_REDIS_REST_TOKEN: optionalStr,

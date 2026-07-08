@@ -33,18 +33,19 @@ export async function getCachedAvailability(
   try {
     const { data, error } = await db
       .from("domain_cache")
-      .select("available, status, checked_at, expires_at")
+      .select("available, status, checked_at, expires_at, rdap_tier, is_parked")
       .eq("domain", domain)
       .gt("expires_at", new Date().toISOString()) // only fresh rows
       .maybeSingle()
 
     if (error || !data) return null
 
-    // Cast needed: untyped Supabase client returns 'never' without generated types
     const row = data as unknown as {
       available: boolean
       status: string
       checked_at: string
+      rdap_tier: string
+      is_parked: boolean
     }
 
     return {
@@ -52,8 +53,8 @@ export async function getCachedAvailability(
       status: row.status as AvailabilityResult["status"],
       checkedAt: row.checked_at,
       fromCache: true,
-      rdapTier: "tier1", // Dummy value, overwritten by caller
-      isParked: false,   // Ignored on cache miss, assumed false if not tracked in DB
+      rdapTier: (row.rdap_tier as AvailabilityResult["rdapTier"]) ?? "tier1",
+      isParked: row.is_parked ?? false,
     }
   } catch {
     // Never crash the calling code on cache failure
@@ -75,7 +76,7 @@ export async function setCachedAvailability(
   const ttl =
     result.status === "available"
       ? CACHE_TTL_AVAILABLE_MS
-      : result.status === "taken"
+      : result.status === "taken" || result.status === "parked"
         ? CACHE_TTL_TAKEN_MS
         : CACHE_TTL_UNKNOWN_MS
 
@@ -91,6 +92,8 @@ export async function setCachedAvailability(
         checked_at: result.checkedAt,
         expires_at: expiresAt,
         from_cache: false,
+        rdap_tier: result.rdapTier,
+        is_parked: result.isParked,
       },
       { onConflict: "domain" },
     )

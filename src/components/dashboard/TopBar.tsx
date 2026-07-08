@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Search, Bell, User, LogOut, Settings, X } from "lucide-react"
+import { Search, Bell, User, LogOut, Settings, X, UserCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { NotificationBell } from "@/components/layout/NotificationBell"
+import { SignOutDialog } from "@/components/ui/SignOutDialog"
 
 interface TopBarProps {
   userEmail?: string | null
@@ -21,6 +22,7 @@ const COMMANDS = [
   { id: "bulk", label: "Bulk Check", shortcut: "B", href: "/dashboard/bulk" },
   { id: "history", label: "View history", shortcut: "H", href: "/dashboard/history" },
   { id: "insights", label: "View insights", shortcut: "I", href: "/dashboard/insights" },
+  { id: "profile", label: "Profile", shortcut: "P", href: "/dashboard/profile" },
   { id: "settings", label: "Settings", shortcut: "⌘,", href: "/dashboard/settings" },
 ] as const
 
@@ -113,11 +115,11 @@ export function TopBar({ userEmail }: TopBarProps) {
     return () => window.removeEventListener("keydown", handler)
   }, [])
 
-  const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
+  const [signOutOpen, setSignOutOpen] = useState(false)
+
+  const handleSignOutClick = () => {
+    setUserMenuOpen(false)
+    setSignOutOpen(true)
   }
 
   const displayEmail = userEmail
@@ -172,6 +174,13 @@ export function TopBar({ userEmail }: TopBarProps) {
                   </div>
                 )}
                 <button
+                  onClick={() => { setUserMenuOpen(false); router.push("/dashboard/profile") }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors duration-100"
+                >
+                  <UserCircle2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  Profile
+                </button>
+                <button
                   onClick={() => { setUserMenuOpen(false); router.push("/dashboard/settings") }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors duration-100"
                 >
@@ -179,7 +188,7 @@ export function TopBar({ userEmail }: TopBarProps) {
                   Settings
                 </button>
                 <button
-                  onClick={handleSignOut}
+                  onClick={handleSignOutClick}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-zinc-800 transition-colors duration-100"
                 >
                   <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -193,6 +202,8 @@ export function TopBar({ userEmail }: TopBarProps) {
 
       {/* Command palette portal */}
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
+      
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
     </>
   )
 }

@@ -170,10 +170,22 @@ export interface DomainAnalysis {
   socialSuggestions: string[]           // e.g. ["@brewly", "@brewlyhq"]
   trademarkRisk: "low" | "medium" | "high"
   trademarkScore: number
+  trademarkConfidence: "low" | "medium" | "high"
   trademarkSummary: string
   trademarkKeyReasons: string[]
   trademarkRecommendedAction: string
   trademarkDisclaimer: string
+  trademarkUsptoDatabaseNote: string    // v2: specific USPTO registry note
+  usptoSearched: boolean                // v3: true when MarkerAPI was queried
+  usptoHits: Array<{                    // v3: real USPTO trademark records
+    serialnumber: string
+    wordmark: string
+    status: string
+    description: string
+    code: string
+    registrationdate: string
+    owner: string
+  }>
   altTlds: DomainTldResult[]            // alternative TLD availability
 }
 

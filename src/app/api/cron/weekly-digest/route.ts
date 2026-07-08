@@ -55,14 +55,23 @@ export async function GET(request: Request) {
 
     const now = new Date()
     const next30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-    const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const last7DaysIso = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+    // Query activity_history for status_changed events in the past 7 days
+    const { count: recentActivityCount } = await supabase
+      .from("activity_history")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.user_id)
+      .eq("event_type", "status_changed")
+      .gte("created_at", last7DaysIso)
 
     const stats = {
       total: watchlist.length,
       available: watchlist.filter(w => w.status === "available").length,
       expiringSoon: watchlist.filter(w => w.expires_at && new Date(w.expires_at) < next30Days && new Date(w.expires_at) > now).length,
-      recentlyChanged: watchlist.filter(w => new Date(w.created_at) > last7Days).length // simplified proxy for recent activity
+      recentlyChanged: recentActivityCount ?? 0
     }
+
 
     if (resend) {
       const firstName = authUser.user.email.split("@")[0].split(".")[0]

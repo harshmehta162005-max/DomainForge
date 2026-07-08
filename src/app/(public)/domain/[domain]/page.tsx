@@ -1,13 +1,19 @@
-import { Metadata } from "next"
+import type { Metadata } from "next"
 import DomainDetailsClient from "./DomainDetailsClient"
 
-export const metadata: Metadata = {
-  title: "Domain Details | DomainForge",
-  description: "Detailed analysis and trademark risk assessment for domain.",
+export async function generateMetadata(
+  props: { params: Promise<{ domain: string }> }
+): Promise<Metadata> {
+  const { domain } = await props.params
+  const decoded = decodeURIComponent(domain)
+  return {
+    title: `${decoded} — Trademark & Brand Risk | DomainForge`,
+    description: `AI trademark risk assessment, social handle availability, and alternative TLD analysis for ${decoded}.`,
+  }
 }
 
 export default async function DomainPage(props: { params: Promise<{ domain: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   const domain = params.domain
 
   return (
