@@ -53,7 +53,7 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="border-t border-zinc-800 bg-zinc-950/50 px-6 py-4 flex flex-row gap-3 sm:justify-end">
+        <DialogFooter className="m-0 border-t border-zinc-800 bg-zinc-950/50 px-6 py-4 flex flex-row gap-3 sm:justify-end">
           <button
             onClick={() => onOpenChange(false)}
             disabled={isSigningOut}

@@ -137,9 +137,16 @@ export default async function DashboardPage() {
     availableDelta: 0,
   }
 
-  // First name from email
+  // Fetch user settings for display name
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("display_name")
+    .eq("user_id", user!.id)
+    .single()
+
   const firstName = user?.email?.split("@")[0]?.split(".")[0] ?? "there"
-  const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1)
+  const defaultName = firstName.charAt(0).toUpperCase() + firstName.slice(1)
+  const displayName = settings?.display_name || defaultName
 
   return (
     <div className="px-6 py-8 max-w-[1400px] mx-auto space-y-6">

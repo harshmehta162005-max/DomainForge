@@ -218,28 +218,7 @@ export function BillingPanel({ profile }: BillingPanelProps) {
         </div>
       </div>
 
-      {/* Links */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
-        <div className="px-5 py-3 border-b border-zinc-800">
-          <h2 className="text-sm font-medium text-zinc-200">Export</h2>
-        </div>
-        <div className="px-5 py-5 flex items-center gap-3">
-          <a
-            href="/api/export-csv"
-            className="inline-flex items-center gap-2 h-8 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
-          >
-            <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-            Export CSV
-          </a>
-          <a
-            href="/api/export-account"
-            className="inline-flex items-center gap-2 h-8 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
-          >
-            <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-            Export account JSON
-          </a>
-        </div>
-      </div>
+
 
       {/* Danger zone */}
       <div className="bg-zinc-900 border border-red-900/30 rounded-[4px] overflow-hidden">

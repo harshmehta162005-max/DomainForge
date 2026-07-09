@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Profile } from "@/types/user"
+import { useToast } from "@/components/ui/Toast"
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -49,14 +50,14 @@ function PasswordInput({
 }) {
   const [visible, setVisible] = useState(false)
   return (
-    <div className="relative">
+    <div className="relative w-full max-w-xs">
       <input
         id={id}
         type={visible ? "text" : "password"}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 px-3 pr-9 w-full max-w-xs bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 focus:outline-none focus:border-cyan-500/50 transition-colors placeholder:text-zinc-700"
+        className="h-9 px-3 pr-9 w-full bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 focus:outline-none focus:border-cyan-500/50 transition-colors placeholder:text-zinc-700"
       />
       <button
         type="button"
@@ -80,6 +81,8 @@ interface SecurityPanelProps {
 }
 
 export function SecurityPanel({ profile }: SecurityPanelProps) {
+  const { toast } = useToast()
+  
   // Password change
   const [newPw, setNewPw] = useState("")
   const [confirmPw, setConfirmPw] = useState("")
@@ -108,9 +111,13 @@ export function SecurityPanel({ profile }: SecurityPanelProps) {
     const data = await res.json() as { message?: string; error?: string }
     setPwSaving(false)
     setPwResult({ ok: res.ok, msg: data.message ?? data.error ?? "Unknown error" })
+    
     if (res.ok) {
+      toast("Password updated successfully.", "success")
       setNewPw("")
       setConfirmPw("")
+    } else {
+      toast(data.error ?? "Failed to update password", "error")
     }
   }
 
@@ -121,9 +128,11 @@ export function SecurityPanel({ profile }: SecurityPanelProps) {
     const data = await res.json() as { message?: string; error?: string }
     setSignOutLoading(false)
     if (res.ok) {
+      toast("Successfully signed out of all other sessions.", "success")
       setSignOutDone(true)
       setTimeout(() => setSignOutDone(false), 3000)
     } else {
+      toast(data.error ?? "Failed to sign out other sessions", "error")
       setSignOutError(data.error ?? "Failed")
     }
   }

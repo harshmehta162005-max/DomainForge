@@ -987,25 +987,25 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
           {filtered.map(item => (
             <div
               key={item.id}
-              className="border border-zinc-700 rounded-[4px] p-4 hover:border-cyan-400/40 hover:bg-zinc-800/30 transition-all duration-150 group"
+              className="border border-zinc-700 rounded-[4px] p-5 min-h-[220px] hover:border-cyan-400/40 hover:bg-zinc-800/30 transition-all duration-150 group flex flex-col h-full gap-3"
             >
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between">
                 <span className="font-mono text-zinc-100 font-medium text-sm" data-domain>
                   {item.domain}
                 </span>
                 <StatusBadge status={item.status} />
               </div>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2">
                 <ScoreCell score={item.score} />
                 <span className="text-xs text-zinc-600">/ 100</span>
                 <span className="ml-auto text-xs text-zinc-300 font-mono">{item.priceEstimate ?? "—"}</span>
               </div>
               <TagChips tags={item.tags} />
               {item.notes && (
-                <p className="mt-2 text-xs text-zinc-500 line-clamp-2">{item.notes}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-zinc-400 line-clamp-3">{item.notes}</p>
               )}
               
-              <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between">
+              <div className="mt-auto pt-4 border-t border-zinc-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {item.status === "available" ? (
                     <a

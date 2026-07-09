@@ -33,8 +33,6 @@ const NAV_ITEMS = [
   { href: "/dashboard/bulk",       label: "Bulk Check", Icon: Layers },
   { href: "/dashboard/history",    label: "History",    Icon: History },
   { href: "/dashboard/insights",   label: "Insights",   Icon: BarChart3 },
-  { href: "/dashboard/profile",    label: "Profile",    Icon: User },
-  { href: "/dashboard/settings",   label: "Settings",   Icon: Settings },
 ] as const
 
 
@@ -145,6 +143,45 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
           })}
         </ul>
       </nav>
+
+      {/* Bottom section */}
+      <div className="p-2 border-t border-zinc-800 flex-shrink-0">
+        <Link
+          href="/dashboard/settings"
+          title={collapsed ? "Settings" : undefined}
+          className={cn(
+            "flex items-center gap-3 h-9 px-2 rounded-[4px] transition-colors duration-150 relative group",
+            pathname.startsWith("/dashboard/settings")
+              ? "bg-zinc-800 text-zinc-100"
+              : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60"
+          )}
+        >
+          {/* Active indicator bar */}
+          {pathname.startsWith("/dashboard/settings") && (
+            <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-cyan-400 rounded-full" />
+          )}
+          <Settings
+            className={cn(
+              "h-4 w-4 flex-shrink-0",
+              pathname.startsWith("/dashboard/settings") ? "text-cyan-400" : "text-zinc-500 group-hover:text-zinc-300"
+            )}
+            strokeWidth={1.5}
+          />
+          <AnimatePresence mode="wait">
+            {!collapsed && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1 }}
+                className="text-sm whitespace-nowrap overflow-hidden"
+              >
+                Settings
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </Link>
+      </div>
 
     </motion.aside>
   )

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { Search, Bell, User, LogOut, Settings, X, UserCircle2 } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { Search, Bell, LogOut, Settings, X, UserCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -10,6 +10,8 @@ import { SignOutDialog } from "@/components/ui/SignOutDialog"
 
 interface TopBarProps {
   userEmail?: string | null
+  userDisplayName?: string | null
+  userAvatarUrl?: string | null
 }
 
 // ─── Command Palette ──────────────────────────────────────────────────────────
@@ -98,10 +100,29 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
 
 // ─── TopBar ───────────────────────────────────────────────────────────────────
 
-export function TopBar({ userEmail }: TopBarProps) {
+export function TopBar({ userEmail, userDisplayName, userAvatarUrl }: TopBarProps) {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const router = useRouter()
+  
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        menuRef.current && 
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   // Cmd+K handler
   useEffect(() => {
@@ -122,9 +143,24 @@ export function TopBar({ userEmail }: TopBarProps) {
     setSignOutOpen(true)
   }
 
-  const displayEmail = userEmail
-    ? `${userEmail[0]}***@${userEmail.split("@")[1]}`
-    : null
+  const initial = userDisplayName 
+    ? userDisplayName.charAt(0).toUpperCase() 
+    : (userEmail ? userEmail.charAt(0).toUpperCase() : "?")
+
+  const AvatarIcon = ({ sizeClass = "h-8 w-8" }: { sizeClass?: string }) => {
+    if (userAvatarUrl) {
+      return (
+        <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-zinc-700/50", sizeClass)}>
+          <img src={userAvatarUrl} alt="Profile" className="h-full w-full object-cover" />
+        </div>
+      )
+    }
+    return (
+      <div className={cn("rounded-full bg-zinc-800 border border-zinc-700/50 text-zinc-300 flex items-center justify-center font-medium flex-shrink-0", sizeClass)}>
+        <span style={{ fontSize: '0.85em' }}>{initial}</span>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -150,34 +186,35 @@ export function TopBar({ userEmail }: TopBarProps) {
           {/* User avatar */}
           <div className="relative">
             <button
+              ref={buttonRef}
               id="user-menu-toggle"
               onClick={() => setUserMenuOpen(prev => !prev)}
               className={cn(
-                "h-8 w-8 flex items-center justify-center rounded-[4px] transition-colors duration-150",
+                "h-8 w-8 flex items-center justify-center rounded-full transition-all duration-150 ring-offset-zinc-950",
                 userMenuOpen
-                  ? "bg-zinc-700 text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800"
+                  ? "ring-2 ring-cyan-500/50"
+                  : "hover:ring-2 hover:ring-zinc-700"
               )}
             >
-              <User className="h-4 w-4" strokeWidth={1.5} />
+              <AvatarIcon sizeClass="h-7 w-7" />
             </button>
 
             {/* Dropdown */}
             {userMenuOpen && (
               <div
+                ref={menuRef}
                 className="absolute right-0 top-10 w-52 bg-zinc-900 border border-zinc-700 rounded-[6px] py-1 shadow-xl z-40 animate-fade-in"
-                onBlur={() => setUserMenuOpen(false)}
               >
-                {displayEmail && (
+                {userDisplayName && (
                   <div className="px-3 py-2 border-b border-zinc-800 mb-1">
-                    <p className="text-xs text-zinc-500 font-mono truncate">{displayEmail}</p>
+                    <p className="text-sm font-medium text-zinc-200 truncate">{userDisplayName}</p>
                   </div>
                 )}
                 <button
                   onClick={() => { setUserMenuOpen(false); router.push("/dashboard/profile") }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors duration-100"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors duration-100"
                 >
-                  <UserCircle2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <AvatarIcon sizeClass="h-4 w-4" />
                   Profile
                 </button>
                 <button

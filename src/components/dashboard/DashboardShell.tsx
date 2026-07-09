@@ -8,11 +8,13 @@ import { ToastProvider } from "@/components/ui/Toast"
 interface DashboardShellProps {
   children: React.ReactNode
   userEmail?: string | null
+  userDisplayName?: string | null
+  userAvatarUrl?: string | null
 }
 
 const SIDEBAR_STORAGE_KEY = "domainforge-sidebar-collapsed"
 
-export function DashboardShell({ children, userEmail }: DashboardShellProps) {
+export function DashboardShell({ children, userEmail, userDisplayName, userAvatarUrl }: DashboardShellProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   // Persist sidebar state in localStorage
@@ -36,9 +38,10 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
           collapsed={collapsed}
           onToggle={handleToggle}
           userEmail={userEmail}
+          userAvatarUrl={userAvatarUrl}
         />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <TopBar userEmail={userEmail} />
+          <TopBar userEmail={userEmail} userDisplayName={userDisplayName} userAvatarUrl={userAvatarUrl} />
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
             {children}
           </main>
