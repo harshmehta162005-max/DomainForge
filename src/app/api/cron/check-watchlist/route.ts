@@ -19,6 +19,49 @@ const supabaseAdmin = createClient(
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns the current HH:MM time string in a given IANA timezone. */
+function currentTimeInTz(timezone: string): string {
+  try {
+    return new Date().toLocaleTimeString("en-GB", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).slice(0, 5)
+  } catch {
+    return new Date().toISOString().slice(11, 16)
+  }
+}
+
+/**
+ * Returns true if current time falls inside the quiet window [start, end).
+ * Handles overnight windows, e.g. start="22:00" end="08:00".
+ */
+function isInQuietHours(start: string, end: string, timezone: string): boolean {
+  const now = currentTimeInTz(timezone)
+  if (start > end) {
+    // Overnight: 22:00–08:00 → quiet if now >= 22:00 OR now < 08:00
+    return now >= start || now < end
+  }
+  return now >= start && now < end
+}
+
+interface UserGlobalSettings {
+  notif_master:        boolean
+  notif_available:     boolean
+  notif_expiry:        boolean
+  notif_price:         boolean
+  notif_frequency:     string
+  quiet_hours_enabled: boolean
+  quiet_hours_start:   string
+  quiet_hours_end:     string
+  timezone:            string
+}
+
+// ── Cron handler ──────────────────────────────────────────────────────────────
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization")
   
@@ -40,8 +83,6 @@ export async function GET(request: Request) {
     const { data: shortlistEntries, error: shortlistError } = await supabaseAdmin
       .from("shortlist")
       .select("id, domain, status, user_id, expires_at, last_alerted_at, alert_enabled")
-      // alert_enabled column was just added, some rows might not have it or default to true
-      // To be safe, we fetch all and filter in memory, or use eq if we're sure
       .eq("alert_enabled", true)
 
     if (shortlistError) throw shortlistError
@@ -64,72 +105,85 @@ export async function GET(request: Request) {
     const uniqueDomains = Array.from(new Set(combinedEntries.map((e) => e.domain)))
     const availabilityResults = await checkDomainsAvailability(uniqueDomains, 5)
 
+    // ── Fetch global user settings for all relevant users in one query ──
     const userIds = Array.from(new Set(combinedEntries.map((e) => e.user_id)))
-    const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
-    
-    const userMap = new Map<string, string>()
-    if (!usersError && usersData?.users) {
-      usersData.users.forEach(u => {
-        if (u.email) userMap.set(u.id, u.email)
+
+    const { data: userSettingsRows } = await supabaseAdmin
+      .from("user_settings")
+      .select("user_id, notif_master, notif_available, notif_expiry, notif_price, notif_frequency, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, timezone")
+      .in("user_id", userIds)
+
+    const userSettingsMap = new Map<string, UserGlobalSettings>()
+    for (const row of (userSettingsRows ?? [])) {
+      userSettingsMap.set(row.user_id as string, {
+        notif_master:        (row.notif_master        as boolean) ?? true,
+        notif_available:     (row.notif_available     as boolean) ?? true,
+        notif_expiry:        (row.notif_expiry        as boolean) ?? true,
+        notif_price:         (row.notif_price         as boolean) ?? false,
+        notif_frequency:     (row.notif_frequency     as string)  ?? "immediate",
+        quiet_hours_enabled: (row.quiet_hours_enabled as boolean) ?? false,
+        quiet_hours_start:   (row.quiet_hours_start   as string)  ?? "22:00",
+        quiet_hours_end:     (row.quiet_hours_end     as string)  ?? "08:00",
+        timezone:            (row.timezone            as string)  ?? "UTC",
       })
     }
 
-    const updates = []
-    const emailsToSend: any[] = []
+    // ── Fetch user emails ──
+    const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
+    const userEmailMap = new Map<string, string>()
+    if (!usersError && usersData?.users) {
+      usersData.users.forEach(u => {
+        if (u.email) userEmailMap.set(u.id, u.email)
+      })
+    }
+
+    const updates: Promise<unknown>[] = []
+    const emailsToSend: unknown[] = []
     const now = new Date()
 
     for (const entry of combinedEntries) {
       const result = availabilityResults.get(entry.domain)
       if (!result) continue
 
+      const globalPrefs = userSettingsMap.get(entry.user_id)
+
       let shouldAlert = false
       let alertType: "available" | "expiring" | "price_drop" = "available"
       let extraData = ""
       let newAlertEnabled = entry.alert_enabled
 
-      // Safely parse preferences
-      const prefs = entry.notification_preferences || { availability: true, expiration: true, price_drop: true }
+      const domainPrefs = entry.notification_preferences || { availability: true, expiration: true, price_drop: true }
       
       const lastAlerted = entry.last_alerted_at ? new Date(entry.last_alerted_at) : null
       const daysSinceLastAlert = lastAlerted 
         ? (now.getTime() - lastAlerted.getTime()) / (1000 * 3600 * 24) 
         : Infinity
 
-      // Rate limit based on notify_frequency
-      const minDaysBetweenAlerts = entry.notify_frequency === 'weekly' ? 7 : (entry.notify_frequency === 'daily' ? 1 : 0)
+      const minDaysBetweenAlerts = entry.notify_frequency === "weekly" ? 7 : (entry.notify_frequency === "daily" ? 1 : 0)
       
       if (daysSinceLastAlert < minDaysBetweenAlerts) {
-        // Skip alerting if we are within the frequency throttle, EXCEPT for availability which is immediate and high priority
-        if (!(entry.status !== "available" && result.status === "available" && prefs.availability)) {
+        if (!(entry.status !== "available" && result.status === "available" && domainPrefs.availability)) {
            continue
         }
       }
 
       // Condition A: Became available
-      if (prefs.availability && entry.status !== "available" && result.status === "available") {
+      if (domainPrefs.availability && entry.status !== "available" && result.status === "available") {
         shouldAlert = true
         alertType = "available"
         newAlertEnabled = false
       }
-      // Condition C: Expiring soon (30, 15, 7, 3 days)
-      // Fall back to the stored entry.expires_at if RDAP didn't return one this run
-      else if (prefs.expiration && result.status === "taken" && (result.expiresAt || entry.expires_at)) {
+      // Condition C: Expiring soon
+      else if (domainPrefs.expiration && result.status === "taken" && (result.expiresAt || entry.expires_at)) {
         const expiresAtDate = new Date((result.expiresAt ?? entry.expires_at) as string)
         const daysUntilExpiry = Math.floor((expiresAtDate.getTime() - now.getTime()) / (1000 * 3600 * 24))
-        
-        // Only alert exactly on or near these thresholds if we haven't alerted in the last few days
         if ([30, 15, 7, 3].some(threshold => daysUntilExpiry <= threshold && daysUntilExpiry > threshold - 2)) {
-          // ensure we haven't already sent a recent alert
           if (daysSinceLastAlert > 3) {
             shouldAlert = true
             alertType = "expiring"
             extraData = daysUntilExpiry.toString()
           }
         }
-      }
-      // Condition B: Price Drop (moved to bottom so it doesn't swallow expiration if empty)
-      else if (prefs.price_drop && entry.price_estimate && result.status === "taken") {
-         // Placeholder for price drop logic if `result` contained price.
       }
 
       const needsDbUpdate = 
@@ -140,57 +194,85 @@ export async function GET(request: Request) {
 
       if (needsDbUpdate) {
         updates.push(
-          supabaseAdmin
-            .from(entry.type === "shortlist" ? "shortlist" : "watchlist")
-            .update({
-              status: result.status,
-              expires_at: result.expiresAt || null,
-              ...(shouldAlert ? { last_alerted_at: now.toISOString(), alert_enabled: newAlertEnabled } : {})
-            })
-            .eq("id", entry.id)
+          Promise.resolve(
+            supabaseAdmin
+              .from(entry.type === "shortlist" ? "shortlist" : "watchlist")
+              .update({
+                status: result.status,
+                expires_at: result.expiresAt || null,
+                ...(shouldAlert ? { last_alerted_at: now.toISOString(), alert_enabled: newAlertEnabled } : {})
+              })
+              .eq("id", entry.id)
+          )
         )
       }
       
+      // ── Always write in-app notification (unaffected by email gates) ──
       if (shouldAlert) {
         updates.push(
-          supabaseAdmin
-            .from("activity_history")
-            .insert({
-              user_id: entry.user_id,
-              domain: entry.domain,
-              event_type: alertType === "available" ? "status_changed" : alertType,
-              note: alertType === "available" 
-                ? `${entry.domain} is now available!` 
-                : (alertType === "expiring" ? `${entry.domain} expires in ${extraData} days` : `Price drop detected for ${entry.domain}`),
-              is_read: false
-            })
+          Promise.resolve(
+            supabaseAdmin
+              .from("activity_history")
+              .insert({
+                user_id: entry.user_id,
+                domain: entry.domain,
+                event_type: alertType === "available" ? "status_changed" : alertType,
+                note: alertType === "available" 
+                  ? `${entry.domain} is now available!` 
+                  : (alertType === "expiring" ? `${entry.domain} expires in ${extraData} days` : `Price drop detected for ${entry.domain}`),
+                is_read: false
+              })
+          )
         )
       }
 
-      if (shouldAlert && resend) {
-        const email = userMap.get(entry.user_id)
-        if (email) {
-          emailsToSend.push({
-            from: "DomainForge Alerts <alerts@domainforge.ai>",
-            to: email,
-            subject: alertType === "available" 
-              ? `🎉 ${entry.domain} is now available!` 
-              : (alertType === "expiring" ? `⏰ ${entry.domain} expires in ${extraData} days` : `💰 Price drop for ${entry.domain}`),
-            react: React.createElement(DomainAlertEmail, {
-              domain: entry.domain,
-              alertType,
-              extraData,
-              appUrl: env.NEXT_PUBLIC_APP_URL
-            })
+      // ── Gate email on global user settings ──
+      if (!shouldAlert || !resend) continue
+
+      const g = globalPrefs
+
+      // 1. Master toggle off → skip email (in-app already written)
+      if (g && !g.notif_master) continue
+
+      // 2. Global alert type flags
+      if (g) {
+        if (alertType === "available" && !g.notif_available) continue
+        if (alertType === "expiring"  && !g.notif_expiry)    continue
+        // price_drop is a valid alertType but won't equal "available"|"expiring"
+        if (!g.notif_price && alertType !== "available" && alertType !== "expiring") continue
+      }
+
+      // 3. Quiet hours → skip email silently (Option A), in-app already saved
+      if (g?.quiet_hours_enabled && isInQuietHours(g.quiet_hours_start, g.quiet_hours_end, g.timezone)) {
+        continue
+      }
+
+      // 4. Global frequency: only "immediate" sends now.
+      //    Exception: domain-became-available is always immediate (time-sensitive).
+      if (g && g.notif_frequency !== "immediate" && alertType !== "available") continue
+
+      const email = userEmailMap.get(entry.user_id)
+      if (email) {
+        emailsToSend.push({
+          from: "DomainForge Alerts <alerts@domainforge.ai>",
+          to: email,
+          subject: alertType === "available" 
+            ? `🎉 ${entry.domain} is now available!` 
+            : (alertType === "expiring" ? `⏰ ${entry.domain} expires in ${extraData} days` : `💰 Price drop for ${entry.domain}`),
+          react: React.createElement(DomainAlertEmail, {
+            domain: entry.domain,
+            alertType,
+            extraData,
+            appUrl: env.NEXT_PUBLIC_APP_URL
           })
-        }
+        })
       }
     }
 
     await Promise.all(updates)
     
     if (emailsToSend.length > 0 && resend) {
-      await resend.batch.send(emailsToSend)
+      await resend.batch.send(emailsToSend as Parameters<typeof resend.batch.send>[0])
     }
 
     return NextResponse.json({
@@ -198,8 +280,9 @@ export async function GET(request: Request) {
       checked: combinedEntries.length,
       alertsSent: emailsToSend.length,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Unknown error"
     console.error("Cron Error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

@@ -65,7 +65,12 @@ function StatChip({
   highlight?: boolean
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-[4px] min-w-[90px]">
+    <div className={cn(
+      "relative overflow-hidden flex flex-col items-center gap-1.5 px-5 py-4 border rounded-[6px] min-w-[110px] transition-all flex-1",
+      highlight 
+        ? "bg-cyan-950/20 border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+        : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900"
+    )}>
       <span
         className={cn(
           "text-xl font-bold font-mono tracking-tight",
@@ -95,18 +100,11 @@ export function ProfileHero({ profile }: ProfileHeroProps) {
 
   const lastSeen = profile.last_sign_in_at
     ? new Date(profile.last_sign_in_at).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
     : null
-
-  const providerLabel =
-    profile.provider === "google"
-      ? "Google"
-      : profile.provider === "github"
-      ? "GitHub"
-      : "Email"
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
@@ -127,16 +125,14 @@ export function ProfileHero({ profile }: ProfileHeroProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-lg font-semibold text-zinc-100 truncate">{displayName}</h2>
-              {/* Plan badge */}
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-[2px] border flex-shrink-0",
-                  profile.plan === "pro"
-                    ? "bg-cyan-950 border-cyan-800 text-cyan-400"
-                    : "bg-zinc-800 border-zinc-700 text-zinc-400"
-                )}
-              >
-                {profile.plan === "pro" && <Crown className="h-2.5 w-2.5" />}
+              {/* Plan Badge */}
+              <span className={cn(
+                "inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full border",
+                profile.plan === "pro" 
+                  ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
+                  : "bg-zinc-800/50 border-zinc-700 text-zinc-400"
+              )}>
+                {profile.plan === "pro" && <Crown className="h-3 w-3 -ml-0.5" strokeWidth={2.5} />}
                 {profile.plan === "pro" ? "PRO" : "FREE"}
               </span>
             </div>
@@ -149,12 +145,9 @@ export function ProfileHero({ profile }: ProfileHeroProps) {
               </div>
             )}
 
-            {/* Email + provider */}
-            <p className="text-sm text-zinc-500 mt-1 flex items-center gap-2">
+            {/* Email */}
+            <p className="text-sm text-zinc-500 mt-1.5 flex items-center gap-2.5">
               {profile.email}
-              <span className="text-[10px] bg-zinc-800 border border-zinc-700 text-zinc-500 px-1.5 py-0.5 rounded-[2px] font-mono">
-                {providerLabel}
-              </span>
             </p>
 
             {/* Meta row */}
@@ -174,15 +167,10 @@ export function ProfileHero({ profile }: ProfileHeroProps) {
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-3 mt-6 flex-wrap">
+        <div className="flex items-center gap-3 mt-6 w-full">
           <StatChip label="Watched" value={profile.watchlist_count} />
           <StatChip label="Shortlisted" value={profile.shortlist_count} />
           <StatChip label="Generated" value={profile.generation_count} />
-          <StatChip
-            label="Plan"
-            value={profile.plan === "pro" ? "Pro" : "Free"}
-            highlight={profile.plan === "pro"}
-          />
         </div>
       </div>
     </div>

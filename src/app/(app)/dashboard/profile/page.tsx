@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server"
 import { ProfileShell } from "@/components/profile/ProfileShell"
 import { ProfileHero } from "@/components/profile/ProfileHero"
 import { AccountForm } from "@/components/profile/AccountForm"
-import { NotificationsForm } from "@/components/profile/NotificationsForm"
 import { SecurityPanel } from "@/components/profile/SecurityPanel"
 import { BillingPanel } from "@/components/profile/BillingPanel"
 import { DomainActivityPanel } from "@/components/profile/DomainActivityPanel"
@@ -68,7 +67,7 @@ async function getProfileData(): Promise<{
         .eq("user_id", user.id)
         .eq("event_type", "domain_generated")
         .order("created_at", { ascending: false })
-        .limit(6),
+        .limit(8),
     ])
 
   const settings = settingsRes.data
@@ -128,8 +127,6 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     switch (activeTab) {
       case "account":
         return <AccountForm profile={profile} />
-      case "notifications":
-        return <NotificationsForm profile={profile} />
       case "security":
         return <SecurityPanel profile={profile} />
       case "billing":

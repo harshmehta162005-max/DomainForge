@@ -3,15 +3,21 @@ import { createClient } from "@/lib/supabase/server"
 import { z } from "zod"
 
 const UpdateSettingsSchema = z.object({
-  marketing_emails: z.boolean().optional(),
-  weekly_digest: z.boolean().optional(),
-  security_alerts: z.boolean().optional(),
-  notif_available: z.boolean().optional(),
-  notif_expiry: z.boolean().optional(),
-  notif_price: z.boolean().optional(),
-  default_tlds: z.string().optional(),
-  auto_check: z.boolean().optional(),
-  check_interval: z.string().optional(),
+  marketing_emails:    z.boolean().optional(),
+  weekly_digest:       z.boolean().optional(),
+  security_alerts:     z.boolean().optional(),
+  notif_available:     z.boolean().optional(),
+  notif_expiry:        z.boolean().optional(),
+  notif_price:         z.boolean().optional(),
+  notif_master:        z.boolean().optional(),
+  notif_frequency:     z.enum(["immediate", "daily", "weekly"]).optional(),
+  quiet_hours_enabled: z.boolean().optional(),
+  quiet_hours_start:   z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  quiet_hours_end:     z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  timezone:            z.string().max(64).optional(),
+  default_tlds:        z.string().optional(),
+  auto_check:          z.boolean().optional(),
+  check_interval:      z.string().optional(),
 })
 
 export async function GET() {

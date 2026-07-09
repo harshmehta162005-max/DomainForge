@@ -25,6 +25,7 @@ export default async function HistoryPage() {
     .neq("event_type", "status_changed")
     .neq("event_type", "price_drop")
     .neq("event_type", "expiring")
+    .neq("event_type", "domain_generated")
     .order("created_at", { ascending: false })
     .limit(30)
 

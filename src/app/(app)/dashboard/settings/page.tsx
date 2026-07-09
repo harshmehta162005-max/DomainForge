@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ClassicLoader } from "@/components/ui/ClassicLoader"
 import { ProUpgradeDialog } from "@/components/ui/ProUpgradeDialog"
+import { NotificationsForm } from "@/components/profile/NotificationsForm"
+import { useToast } from "@/components/ui/Toast"
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -102,13 +104,30 @@ function DeleteAccountModal({ isOpen, onClose, onConfirm, isDeleting }: { isOpen
 
 export default function SettingsPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [plan, setPlan] = useState("free")
   const [loading, setLoading] = useState(true)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [proDialogOpen, setProDialogOpen] = useState(false)
   const [proDialogFeature, setProDialogFeature] = useState("")
+
+  // Availability defaults (current state)
+  const [defaultTlds, setDefaultTlds] = useState(".com,.io,.ai")
+  const [autoCheck, setAutoCheck] = useState(true)
+  const [checkInterval, setCheckInterval] = useState("6h")
+
+  // Initial values to track if there are changes
+  const [initialDefaultTlds, setInitialDefaultTlds] = useState(".com,.io,.ai")
+  const [initialAutoCheck, setInitialAutoCheck] = useState(true)
+  const [initialCheckInterval, setInitialCheckInterval] = useState("6h")
+
+  const hasChanges = 
+    defaultTlds !== initialDefaultTlds || 
+    autoCheck !== initialAutoCheck || 
+    checkInterval !== initialCheckInterval
 
   const showProDialog = (featureName: string) => {
     setProDialogFeature(featureName)
@@ -123,13 +142,19 @@ export default function SettingsPage() {
           const { settings } = await res.json();
           if (settings) {
             setPlan(settings.plan || "free");
-            setNotifAvailable(settings.notif_available ?? true);
-            setNotifExpiry(settings.notif_expiry ?? true);
-            setNotifPrice(settings.notif_price ?? false);
-            setNotifWeekly(settings.weekly_digest ?? true);
-            setDefaultTlds(settings.default_tlds || ".com,.io,.ai");
-            setAutoCheck(settings.auto_check ?? false);
-            setCheckInterval(settings.check_interval || "6h");
+            
+            const tlds = settings.default_tlds || ".com,.io,.ai";
+            const autoChk = settings.auto_check ?? false;
+            const chkInterval = settings.check_interval || "6h";
+
+            setDefaultTlds(tlds);
+            setInitialDefaultTlds(tlds);
+
+            setAutoCheck(autoChk);
+            setInitialAutoCheck(autoChk);
+
+            setCheckInterval(chkInterval);
+            setInitialCheckInterval(chkInterval);
           }
         }
       } catch (err) {
@@ -140,27 +165,13 @@ export default function SettingsPage() {
     fetchSettings();
   }, [])
 
-  // Notification prefs
-  const [notifAvailable, setNotifAvailable] = useState(true)
-  const [notifExpiry, setNotifExpiry] = useState(true)
-  const [notifPrice, setNotifPrice] = useState(false)
-  const [notifWeekly, setNotifWeekly] = useState(true)
-
-  // Availability defaults
-  const [defaultTlds, setDefaultTlds] = useState(".com,.io,.ai")
-  const [autoCheck, setAutoCheck] = useState(true)
-  const [checkInterval, setCheckInterval] = useState("6h")
-
   const handleSave = async () => {
+    setSaving(true)
     try {
       const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          notif_available: notifAvailable,
-          notif_expiry: notifExpiry,
-          notif_price: notifPrice,
-          weekly_digest: notifWeekly,
           default_tlds: defaultTlds,
           auto_check: autoCheck,
           check_interval: checkInterval
@@ -168,15 +179,23 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
+        // Update initial values so hasChanges becomes false again
+        setInitialDefaultTlds(defaultTlds)
+        setInitialAutoCheck(autoCheck)
+        setInitialCheckInterval(checkInterval)
+
         setSaved(true)
+        toast("Settings saved successfully.", "success")
         setTimeout(() => setSaved(false), 2000)
       } else {
         const data = await res.json()
-        alert(`Failed to save settings: ${data.error}`)
+        toast(`Failed to save settings: ${data.error}`, "error")
       }
     } catch (err) {
       console.error(err)
-      alert("Failed to save settings");
+      toast("Failed to save settings", "error")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -222,18 +241,22 @@ export default function SettingsPage() {
           <h1 className="text-xl font-semibold text-zinc-100">Settings</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Manage your account and preferences</p>
         </div>
-        <button
-          onClick={handleSave}
-          className={cn(
-            "inline-flex items-center gap-2 h-9 px-4 rounded-[4px] text-sm font-medium transition-all duration-150 active:scale-[0.98]",
-            saved
-              ? "bg-green-400/20 border border-green-800 text-green-400"
-              : "bg-cyan-400 text-zinc-950 hover:bg-cyan-300"
-          )}
-        >
-          {saved ? <Check className="h-4 w-4" strokeWidth={1.5} /> : <Save className="h-4 w-4" strokeWidth={1.5} />}
-          {saved ? "Saved!" : "Save changes"}
-        </button>
+        {(hasChanges || saved) && (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className={cn(
+              "inline-flex items-center gap-2 h-9 px-4 rounded-[4px] text-sm font-medium transition-all duration-150 active:scale-[0.98]",
+              saved
+                ? "bg-green-400/20 border border-green-800 text-green-400"
+                : "bg-cyan-400 text-zinc-950 hover:bg-cyan-300",
+              saving && "opacity-70 cursor-not-allowed"
+            )}
+          >
+            {saved ? <Check className="h-4 w-4" strokeWidth={1.5} /> : <Save className="h-4 w-4" strokeWidth={1.5} />}
+            {saved ? "Saved!" : saving ? "Saving..." : "Save changes"}
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -268,21 +291,8 @@ export default function SettingsPage() {
         </Field>
       </Section>
 
-      {/* Notifications */}
-      <Section title="Notifications">
-        <Field label="Domain becomes available" sub="Alert when a watched domain's status changes to available">
-          <Toggle checked={notifAvailable} onChange={setNotifAvailable} />
-        </Field>
-        <Field label="Expiry alerts" sub="Notify 7 days before a domain expires from your watchlist">
-          <Toggle checked={notifExpiry} onChange={setNotifExpiry} />
-        </Field>
-        <Field label="Price changes" sub="Notify when a domain's price estimate changes">
-          <Toggle checked={notifPrice} onChange={setNotifPrice} />
-        </Field>
-        <Field label="Weekly digest" sub="Weekly summary of your watchlist status">
-          <Toggle checked={notifWeekly} onChange={setNotifWeekly} />
-        </Field>
-      </Section>
+      {/* Notifications — uses the new component */}
+      <NotificationsForm />
 
       {/* Availability checks */}
       <Section title="Availability checks">

@@ -8,6 +8,26 @@ import { AvailabilityAlertEmail } from "@/emails/AvailabilityAlertEmail"
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
+/** Returns current HH:MM in a given IANA timezone. */
+function currentTimeInTz(timezone: string): string {
+  try {
+    return new Date().toLocaleTimeString("en-GB", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).slice(0, 5)
+  } catch {
+    return new Date().toISOString().slice(11, 16)
+  }
+}
+
+function isInQuietHours(start: string, end: string, timezone: string): boolean {
+  const now = currentTimeInTz(timezone)
+  if (start > end) return now >= start || now < end
+  return now >= start && now < end
+}
+
 const supabaseAdmin = createClient(
   env.NEXT_PUBLIC_SUPABASE_URL,
   env.SUPABASE_SERVICE_ROLE_KEY || "",
@@ -39,7 +59,7 @@ export async function GET(request: Request) {
   // 2. Fetch all users who have Pro plan and auto_check enabled
   const { data: usersSettings, error: settingsError } = await supabase
     .from("user_settings")
-    .select("user_id, check_interval, notif_available, notif_expiry, notif_price")
+    .select("user_id, check_interval, notif_available, notif_master, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, timezone")
     .eq("auto_check", true)
     .eq("plan", "pro")
 
@@ -98,6 +118,17 @@ export async function GET(request: Request) {
 
         // Send email if enabled, user has not disabled availability alerts, and no recent alert
         if (user.notif_available && resend && hoursSinceLastAlert > 24) {
+          // Master toggle check
+          if (!((user.notif_master as boolean) ?? true)) continue
+
+          // Quiet hours check
+          const quietEnabled = (user.quiet_hours_enabled as boolean) ?? false
+          if (quietEnabled) {
+            const tz    = (user.timezone as string) ?? "UTC"
+            const qStart = (user.quiet_hours_start as string) ?? "22:00"
+            const qEnd   = (user.quiet_hours_end   as string) ?? "08:00"
+            if (isInQuietHours(qStart, qEnd, tz)) continue
+          }
           // Get user email
           const { data: authUser } = await supabase.auth.admin.getUserById(user.user_id)
           if (authUser?.user?.email) {

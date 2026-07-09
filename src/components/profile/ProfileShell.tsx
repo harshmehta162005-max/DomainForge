@@ -5,12 +5,11 @@ import { useCallback } from "react"
 import { User, Bell, Shield, CreditCard, LayoutDashboard } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type ProfileTab = "overview" | "account" | "notifications" | "security" | "billing"
+export type ProfileTab = "overview" | "account" | "security" | "billing"
 
 const TABS: { id: ProfileTab; label: string; Icon: React.ElementType }[] = [
   { id: "overview",       label: "Overview",       Icon: LayoutDashboard },
   { id: "account",        label: "Account",        Icon: User },
-  { id: "notifications",  label: "Notifications",  Icon: Bell },
   { id: "security",       label: "Security",       Icon: Shield },
   { id: "billing",        label: "Billing",        Icon: CreditCard },
 ]

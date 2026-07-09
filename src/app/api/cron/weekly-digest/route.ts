@@ -32,6 +32,7 @@ export async function GET(request: Request) {
     .from("user_settings")
     .select("user_id")
     .eq("weekly_digest", true)
+    .eq("notif_master", true)
 
   if (settingsError || !usersSettings) {
     return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 })

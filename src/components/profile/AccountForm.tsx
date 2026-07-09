@@ -11,8 +11,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Mail,
+  Pencil,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/Toast"
 import type { Profile } from "@/types/user"
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
@@ -84,6 +86,8 @@ function AvatarSection({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const { toast } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentUrl = preview ?? avatarUrl
@@ -118,6 +122,7 @@ function AvatarSection({
     } else {
       onUpload(data.avatar_url!)
       setDone(true)
+      toast("Profile photo updated successfully.", "success")
       setTimeout(() => setDone(false), 2000)
     }
   }
@@ -129,65 +134,92 @@ function AvatarSection({
   }
 
   return (
-    <div className="flex items-center gap-5">
-      {/* Avatar preview */}
-      <div
-        className="relative h-16 w-16 flex-shrink-0 rounded-full cursor-pointer group"
-        onClick={() => inputRef.current?.click()}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleDrop}
-      >
-        {currentUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={currentUrl}
-            alt="Avatar"
-            className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-700 group-hover:ring-cyan-500/50 transition-all duration-150"
-          />
-        ) : (
-          <div className="h-16 w-16 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-semibold font-mono text-zinc-300 text-lg ring-2 ring-zinc-700 group-hover:ring-cyan-500/50 transition-all duration-150">
-            {initials}
-          </div>
-        )}
-        {/* Upload overlay */}
-        <div className="absolute inset-0 rounded-full bg-zinc-950/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-          {uploading ? (
-            <Loader2 className="h-5 w-5 text-cyan-400 animate-spin" />
+    <>
+      <div className="flex items-center gap-5">
+        {/* Avatar — click to preview */}
+        <div
+          className="relative h-16 w-16 flex-shrink-0 rounded-full cursor-zoom-in group"
+          onClick={() => currentUrl && setLightboxOpen(true)}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+        >
+          {currentUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={currentUrl}
+              alt="Avatar"
+              className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-700 group-hover:ring-zinc-500 transition-all duration-150"
+            />
           ) : (
-            <Upload className="h-5 w-5 text-cyan-400" strokeWidth={1.5} />
+            <div className="h-16 w-16 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-semibold font-mono text-zinc-300 text-lg ring-2 ring-zinc-700">
+              {initials}
+            </div>
           )}
+          {/* Uploading spinner overlay */}
+          {uploading && (
+            <div className="absolute inset-0 rounded-full bg-zinc-950/70 flex items-center justify-center">
+              <Loader2 className="h-5 w-5 text-cyan-400 animate-spin" />
+            </div>
+          )}
+        </div>
+
+        {/* Text + input */}
+        <div className="flex-1">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) handleFile(f)
+            }}
+          />
+          <p className="text-sm text-zinc-200">Profile Photo</p>
+          <p className="text-xs text-zinc-600 mt-0.5">JPEG, PNG, WebP or GIF · max 2 MB</p>
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="mt-2 inline-flex items-center gap-1.5 h-7 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
+          >
+            <Upload className="h-3 w-3" strokeWidth={1.5} />
+            Change photo
+          </button>
+          {done && (
+            <span className="ml-2 text-xs text-green-400 flex items-center gap-1">
+              <Check className="h-3 w-3" /> Saved
+            </span>
+          )}
+          {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
         </div>
       </div>
 
-      {/* Text + input */}
-      <div className="flex-1">
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) handleFile(f)
-          }}
-        />
-        <p className="text-sm text-zinc-200">Profile Photo</p>
-        <p className="text-xs text-zinc-600 mt-0.5">JPEG, PNG, WebP or GIF · max 2 MB</p>
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="mt-2 inline-flex items-center gap-1.5 h-7 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
+      {/* Lightbox */}
+      {lightboxOpen && currentUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setLightboxOpen(false)}
+          onKeyDown={(e) => e.key === "Escape" && setLightboxOpen(false)}
         >
-          <Upload className="h-3 w-3" strokeWidth={1.5} />
-          Upload photo
-        </button>
-        {done && (
-          <span className="ml-2 text-xs text-green-400 flex items-center gap-1">
-            <Check className="h-3 w-3" /> Saved
-          </span>
-        )}
-        {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
-      </div>
-    </div>
+          {/* Close button — fixed top-right of backdrop */}
+          <button
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-5 right-5 h-9 w-9 flex items-center justify-center rounded-full bg-zinc-800/80 border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors shadow-lg backdrop-blur-sm"
+          >
+            <X className="h-4 w-4" strokeWidth={2} />
+          </button>
+
+          {/* Image — stop click propagation so only backdrop click closes */}
+          <div onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={currentUrl}
+              alt="Profile photo preview"
+              className="max-h-[60vh] max-w-[60vw] rounded-full object-cover shadow-2xl ring-2 ring-zinc-700"
+            />
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -196,9 +228,11 @@ function AvatarSection({
 function UsernameField({
   value,
   onChange,
+  onAvailabilityChange,
 }: {
   value: string
   onChange: (v: string) => void
+  onAvailabilityChange: (available: boolean | null) => void
 }) {
   const [checking, setChecking] = useState(false)
   const [available, setAvailable] = useState<boolean | null>(null)
@@ -207,6 +241,7 @@ function UsernameField({
   const validateAndCheck = useCallback(
     (val: string) => {
       setAvailable(null)
+      onAvailabilityChange(null)
       if (debounceTimer) clearTimeout(debounceTimer)
 
       if (!val || val.length < 3 || !/^[a-zA-Z0-9_]+$/.test(val)) return
@@ -217,14 +252,17 @@ function UsernameField({
           const res = await fetch(`/api/profile/username-check?username=${encodeURIComponent(val)}`)
           const data = await res.json() as { available: boolean }
           setAvailable(data.available)
+          onAvailabilityChange(data.available)
         } catch {
           setAvailable(null)
+          onAvailabilityChange(null)
         } finally {
           setChecking(false)
         }
       }, 500)
       setDebounceTimer(timer)
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [debounceTimer]
   )
 
@@ -236,8 +274,6 @@ function UsernameField({
 
   return (
     <div className="space-y-1.5">
-      <label className="text-sm text-zinc-200">Username</label>
-      <p className="text-xs text-zinc-600">Your unique @handle — 3–20 characters, letters, numbers, underscores</p>
       <div className="relative">
         <AtSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600" strokeWidth={1.5} />
         <input
@@ -273,30 +309,37 @@ interface AccountFormProps {
 export function AccountForm({ profile }: AccountFormProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
+  const { toast } = useToast()
 
   // Avatar
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? null)
 
-  // Display name
+  // Display name — show/edit pattern
+  const [editingName, setEditingName] = useState(false)
   const [displayName, setDisplayName] = useState(profile.display_name ?? "")
-  const [nameSaved, setNameSaved] = useState(false)
+  const [savedName, setSavedName] = useState(profile.display_name ?? "")
   const [nameSaving, setNameSaving] = useState(false)
   const [nameError, setNameError] = useState<string | null>(null)
 
-  // Username
+  // Username — show/edit pattern
+  const [editingUsername, setEditingUsername] = useState(false)
   const [username, setUsername] = useState(profile.username ?? "")
-  const [usernameSaved, setUsernameSaved] = useState(false)
+  const [savedUsername, setSavedUsername] = useState(profile.username ?? "")
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [usernameSaving, setUsernameSaving] = useState(false)
   const [usernameError, setUsernameError] = useState<string | null>(null)
 
-  // Bio
+  // Bio — show/edit pattern
+  const [editingBio, setEditingBio] = useState(false)
   const [bio, setBio] = useState(profile.bio ?? "")
-  const [bioSaved, setBioSaved] = useState(false)
+  const [savedBio, setSavedBio] = useState(profile.bio ?? "")
   const [bioSaving, setBioSaving] = useState(false)
+  const [bioError, setBioError] = useState<string | null>(null)
 
   // Email change
   const [newEmail, setNewEmail] = useState("")
   const [emailSending, setEmailSending] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
   const [emailResult, setEmailResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
   const patchProfile = async (payload: Record<string, unknown>) => {
@@ -305,60 +348,95 @@ export function AccountForm({ profile }: AccountFormProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     })
-    return res.json() as Promise<{ error?: string }>
+    return { ok: res.ok, data: await res.json() as { error?: string } }
   }
 
   // ── Handlers ──
 
   const handleSaveName = async () => {
-    setNameSaving(true)
     setNameError(null)
-    const data = await patchProfile({ display_name: displayName.trim() || null })
+    const trimmed = displayName.trim()
+    if (!trimmed) { setNameError("Display name cannot be empty"); return }
+    if (trimmed.length < 2) { setNameError("Must be at least 2 characters"); return }
+    if (trimmed.length > 50) { setNameError("Must be 50 characters or less"); return }
+
+    setNameSaving(true)
+    const { ok, data } = await patchProfile({ display_name: trimmed })
     setNameSaving(false)
-    if (data.error) {
-      setNameError(data.error)
+    if (!ok) {
+      setNameError(data.error ?? "Failed to save")
+      toast(data.error ?? "Failed to update display name", "error")
     } else {
-      setNameSaved(true)
-      setTimeout(() => { setNameSaved(false); startTransition(() => router.refresh()) }, 1500)
+      setSavedName(trimmed)
+      setEditingName(false)
+      toast("Display name updated successfully.", "success")
+      startTransition(() => router.refresh())
     }
   }
 
   const handleSaveUsername = async () => {
-    setUsernameSaving(true)
     setUsernameError(null)
-    const data = await patchProfile({ username: username.trim() || null })
+    const trimmed = username.trim()
+    if (!trimmed) { setUsernameError("Username cannot be empty"); return }
+    if (trimmed.length < 3) { setUsernameError("Must be at least 3 characters"); return }
+    if (trimmed.length > 20) { setUsernameError("Must be 20 characters or less"); return }
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) { setUsernameError("Only letters, numbers, and underscores"); return }
+    if (usernameAvailable === false) { setUsernameError("Username is already taken"); return }
+
+    setUsernameSaving(true)
+    const { ok, data } = await patchProfile({ username: trimmed })
     setUsernameSaving(false)
-    if (data.error) {
-      setUsernameError(data.error)
+    if (!ok) {
+      setUsernameError(data.error ?? "Failed to save")
+      toast(data.error ?? "Failed to update username", "error")
     } else {
-      setUsernameSaved(true)
-      setTimeout(() => { setUsernameSaved(false); startTransition(() => router.refresh()) }, 1500)
+      setSavedUsername(trimmed)
+      setEditingUsername(false)
+      toast("Username updated successfully.", "success")
+      startTransition(() => router.refresh())
     }
   }
 
   const handleSaveBio = async () => {
+    setBioError(null)
+    if (bio.length > 160) { setBioError("Bio must be 160 characters or less"); return }
+
     setBioSaving(true)
-    const data = await patchProfile({ bio: bio.trim() || null })
+    const { ok, data } = await patchProfile({ bio: bio.trim() || null })
     setBioSaving(false)
-    if (!data.error) {
-      setBioSaved(true)
-      setTimeout(() => setBioSaved(false), 1500)
+    if (!ok) {
+      setBioError(data.error ?? "Failed to save")
+      toast(data.error ?? "Failed to update bio", "error")
+    } else {
+      setSavedBio(bio.trim())
+      setEditingBio(false)
+      toast("Bio updated successfully.", "success")
     }
   }
 
   const handleChangeEmail = async () => {
-    if (!newEmail) return
-    setEmailSending(true)
+    setEmailError(null)
     setEmailResult(null)
+    const trimmed = newEmail.trim()
+    if (!trimmed) { setEmailError("Email cannot be empty"); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { setEmailError("Please enter a valid email address"); return }
+    if (trimmed.toLowerCase() === profile.email.toLowerCase()) { setEmailError("New email must be different from your current email"); return }
+
+    setEmailSending(true)
     const res = await fetch("/api/profile/change-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: newEmail }),
+      body: JSON.stringify({ email: trimmed }),
     })
     const data = await res.json() as { message?: string; error?: string }
     setEmailSending(false)
     setEmailResult({ ok: res.ok, msg: data.message ?? data.error ?? "Unknown error" })
-    if (res.ok) setNewEmail("")
+    if (res.ok) {
+      setNewEmail("")
+      toast("Verification email sent! Check your inbox.", "success")
+    } else {
+      toast(data.error ?? "Failed to send verification email", "error")
+    }
   }
 
   return (
@@ -367,55 +445,167 @@ export function AccountForm({ profile }: AccountFormProps) {
       <Section title="Profile Photo" subtitle="Shown on your profile and across the app">
         <AvatarSection
           avatarUrl={avatarUrl}
-          displayName={displayName || null}
+          displayName={savedName || null}
           email={profile.email}
           onUpload={(url) => setAvatarUrl(url)}
         />
       </Section>
 
-      {/* Display name */}
+      {/* Display Name */}
       <Section title="Display Name" subtitle="How your name appears across DomainForge">
-        <div className="space-y-3">
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            maxLength={50}
-            placeholder="e.g. Harsh Mehta"
-            className="h-9 px-3 w-full max-w-xs bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 focus:outline-none focus:border-cyan-500/50 transition-colors placeholder:text-zinc-700"
-          />
-          {nameError && <p className="text-xs text-red-400">{nameError}</p>}
-          <SaveButton saved={nameSaved} loading={nameSaving} onClick={handleSaveName} />
-        </div>
+        {!editingName ? (
+          <div className="flex items-center justify-between gap-3">
+            <span className={cn(
+              "text-sm font-medium",
+              savedName ? "text-zinc-100" : "text-zinc-600 italic"
+            )}>
+              {savedName || "Not set"}
+            </span>
+            <button
+              onClick={() => setEditingName(true)}
+              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+            >
+              <Pencil className="h-3 w-3" strokeWidth={1.5} />
+              Edit
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              maxLength={50}
+              autoFocus
+              placeholder="e.g. Harsh Mehta"
+              className="h-9 px-3 w-full max-w-xs bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 focus:outline-none focus:border-cyan-500/50 transition-colors placeholder:text-zinc-700"
+            />
+            {nameError && <p className="text-xs text-red-400">{nameError}</p>}
+            <div className="flex items-center gap-2">
+              {displayName.trim() && (
+                <button
+                  onClick={handleSaveName}
+                  disabled={nameSaving}
+                  className="inline-flex items-center gap-2 h-8 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors disabled:opacity-60 active:scale-[0.98]"
+                >
+                  {nameSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" strokeWidth={2} />}
+                  {nameSaving ? "Saving…" : "Save"}
+                </button>
+              )}
+              <button
+                onClick={() => { setDisplayName(savedName); setEditingName(false); setNameError(null) }}
+                className="h-8 px-3 rounded-[4px] text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 hover:border-zinc-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </Section>
 
       {/* Username */}
-      <Section title="Username" subtitle="Your unique public @handle">
-        <div className="space-y-3">
-          <UsernameField value={username} onChange={setUsername} />
-          {usernameError && <p className="text-xs text-red-400">{usernameError}</p>}
-          <SaveButton saved={usernameSaved} loading={usernameSaving} onClick={handleSaveUsername} />
-        </div>
+      <Section title="Username" subtitle="Your unique @handle — 3–20 characters, letters, numbers, underscores">
+        {!editingUsername ? (
+          <div className="flex items-center justify-between gap-3">
+            <span className={cn(
+              "text-sm font-mono",
+              savedUsername ? "text-zinc-100" : "text-zinc-600 italic"
+            )}>
+              {savedUsername ? `@${savedUsername}` : "Not set"}
+            </span>
+            <button
+              onClick={() => setEditingUsername(true)}
+              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+            >
+              <Pencil className="h-3 w-3" strokeWidth={1.5} />
+              Edit
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <UsernameField
+              value={username}
+              onChange={setUsername}
+              onAvailabilityChange={setUsernameAvailable}
+            />
+            {usernameError && <p className="text-xs text-red-400">{usernameError}</p>}
+            <div className="flex items-center gap-2">
+              {username.trim() && (
+                <button
+                  onClick={handleSaveUsername}
+                  disabled={usernameSaving || usernameAvailable === false}
+                  className="inline-flex items-center gap-2 h-8 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors disabled:opacity-60 active:scale-[0.98]"
+                >
+                  {usernameSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" strokeWidth={2} />}
+                  {usernameSaving ? "Saving…" : "Save"}
+                </button>
+              )}
+              <button
+                onClick={() => { setUsername(savedUsername); setEditingUsername(false); setUsernameError(null) }}
+                className="h-8 px-3 rounded-[4px] text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 hover:border-zinc-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </Section>
 
       {/* Bio */}
-      <Section title="Bio / Tagline" subtitle="A short description, max 160 characters">
-        <div className="space-y-3">
-          <div className="relative">
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={160}
-              rows={3}
-              placeholder="e.g. Domain hunter · Startup founder · Building in public"
-              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 focus:outline-none focus:border-cyan-500/50 transition-colors resize-none placeholder:text-zinc-700"
-            />
-            <span className="absolute bottom-2 right-2 text-[10px] text-zinc-700 font-mono">
-              {bio.length}/160
+      <Section title="Bio / Tagline" subtitle="A short description shown on your profile">
+        {!editingBio ? (
+          <div className="flex items-start justify-between gap-3">
+            <span className={cn(
+              "text-sm leading-relaxed",
+              savedBio ? "text-zinc-300" : "text-zinc-600 italic"
+            )}>
+              {savedBio || "Not set"}
             </span>
+            <button
+              onClick={() => setEditingBio(true)}
+              className="flex-shrink-0 inline-flex items-center gap-1.5 h-7 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+            >
+              <Pencil className="h-3 w-3" strokeWidth={1.5} />
+              Edit
+            </button>
           </div>
-          <SaveButton saved={bioSaved} loading={bioSaving} onClick={handleSaveBio} />
-        </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="relative">
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                maxLength={160}
+                rows={3}
+                autoFocus
+                placeholder="e.g. Domain hunter · Startup founder · Building in public"
+                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 focus:outline-none focus:border-cyan-500/50 transition-colors resize-none placeholder:text-zinc-700"
+              />
+              <span className="absolute bottom-2 right-2 text-[10px] text-zinc-700 font-mono">
+                {bio.length}/160
+              </span>
+            </div>
+            {bioError && <p className="text-xs text-red-400">{bioError}</p>}
+            <div className="flex items-center gap-2">
+              {bio.trim() && (
+                <button
+                  onClick={handleSaveBio}
+                  disabled={bioSaving}
+                  className="inline-flex items-center gap-2 h-8 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors disabled:opacity-60 active:scale-[0.98]"
+                >
+                  {bioSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" strokeWidth={2} />}
+                  {bioSaving ? "Saving…" : "Save"}
+                </button>
+              )}
+              <button
+                onClick={() => { setBio(savedBio); setEditingBio(false); setBioError(null) }}
+                className="h-8 px-3 rounded-[4px] text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 hover:border-zinc-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </Section>
 
       {/* Email change */}
@@ -436,13 +626,13 @@ export function AccountForm({ profile }: AccountFormProps) {
             <input
               type="email"
               value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
+              onChange={(e) => { setNewEmail(e.target.value); setEmailError(null); setEmailResult(null) }}
               placeholder="new@email.com"
               className="h-9 px-3 w-full max-w-xs bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 focus:outline-none focus:border-cyan-500/50 transition-colors placeholder:text-zinc-700"
             />
             <button
               onClick={handleChangeEmail}
-              disabled={emailSending || !newEmail}
+              disabled={emailSending || !newEmail.trim()}
               className="inline-flex items-center gap-2 h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors disabled:opacity-50"
             >
               {emailSending ? (
@@ -453,6 +643,8 @@ export function AccountForm({ profile }: AccountFormProps) {
               Send verification
             </button>
           </div>
+
+          {emailError && <p className="text-xs text-red-400">{emailError}</p>}
 
           {emailResult && (
             <div
@@ -476,3 +668,5 @@ export function AccountForm({ profile }: AccountFormProps) {
     </div>
   )
 }
+
+

@@ -129,6 +129,17 @@ export async function POST(request: Request) {
   // Cache final results
   setCachedGeneration(cacheKey, suggestions).catch(() => {})
 
+  // Log generated domains to activity_history (fire-and-forget, logged-in users only)
+  if (user) {
+    const rows = suggestions.map((s) => ({
+      user_id: user.id,
+      domain: s.domain,
+      event_type: "domain_generated",
+      note: `Generated via AI`,
+    }))
+    void (async () => { await supabase.from("activity_history").insert(rows) })()
+  }
+
   return NextResponse.json({
     suggestions,
     metadata: {

@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Circle,
   Layers,
-  UserCircle2,
+  User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -33,7 +33,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/bulk",       label: "Bulk Check", Icon: Layers },
   { href: "/dashboard/history",    label: "History",    Icon: History },
   { href: "/dashboard/insights",   label: "Insights",   Icon: BarChart3 },
-  { href: "/dashboard/profile",    label: "Profile",    Icon: UserCircle2 },
+  { href: "/dashboard/profile",    label: "Profile",    Icon: User },
   { href: "/dashboard/settings",   label: "Settings",   Icon: Settings },
 ] as const
 
