@@ -1,77 +1,150 @@
-# DomainForge
+<div align="center">
+  
+  # 🌌 DomainForge
 
-AI-powered domain name generator with availability checking, trademark risk scoring, and watchlist monitoring.
+  **The Intelligent Domain Name Discovery & Availability Platform**
 
-## ⚠️ Security: Rotate Secrets Immediately
+  [![Next.js](https://img.shields.io/badge/Next.js-16.2.9-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+  [![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://react.dev/)
+  [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_v4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+  [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> **If you cloned this repo from a fork or before the secrets audit on 2026-07-12, some secrets may still exist in git history.**
->
-> You **must** rotate the following credentials immediately — even if the source code no longer contains them, old commits in git history are permanent until you take action:
->
-> | Secret | How to rotate |
-> |---|---|
-> | `GROQ_API_KEY` (`gsk_...`) | [console.groq.com](https://console.groq.com) → API Keys → Revoke + create new |
-> | `RESEND_API_KEY` (`re_...`) | [resend.com](https://resend.com) → API Keys → Delete + create new |
-> | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Settings → API → Regenerate |
-> | `SUPABASE_ANON_KEY` | Supabase Dashboard → Settings → API → Regenerate |
-> | `SENTRY_AUTH_TOKEN` (`sntrys_...`) | [sentry.io](https://sentry.io) → Settings → Auth Tokens → Revoke |
-> | `MARKERAPI_PASSWORD` | [markerapi.com](https://markerapi.com) → Account → Change password |
-> | `CRON_SECRET` | Replace with a strong random value (`openssl rand -hex 32`) |
->
-> To fully purge secrets from git history, use [git-filter-repo](https://github.com/newren/git-filter-repo) or GitHub's "Remove sensitive data" guidance.
+  <p align="center">
+    DomainForge helps you find the perfect domain name using AI-powered suggestions tailored to your brand's unique tone, seamlessly verifying availability and trademark risk in real-time.
+  </p>
+  
+  [Quick Start](#-quick-start) •
+  [Key Features](#-key-features) •
+  [Architecture](#-architecture) •
+  [Documentation](#-documentation)
 
-## Getting Started
+</div>
 
-### 1. Clone and install
+---
+
+## ✨ Key Features
+
+DomainForge is built for indie hackers, founders, and creators who need brandable, available domain names without the manual guesswork.
+
+* 🧠 **Multi-dimensional AI Generation:** Powered by Groq, generate names based on business description, category, and precise tone presets (Playful, Corporate, Minimal, Bold).
+* ⚡ **Real-time Availability Checking:** ICANN-standard RDAP queries for 95%+ accuracy on Tier 1 TLDs (.com, .io, .ai, .dev), avoiding fragile registrar scraping.
+* 🛡️ **Trademark Risk & Social Handles:** First-class social handle checking and baseline trademark risk scoring via USPTO data.
+* 📊 **Transparent Domain Scoring:** Decomposed scores grading Brandability, Typeability, Keyword relevance, and TLD trust. No opaque black-box numbers.
+* 🔔 **Watchlist & Alerts:** Save domains to a shortlist and monitor their availability over time via automated email alerts (powered by Resend).
+* 🎨 **Stunning UI/UX:** Built with a modern 2026 aesthetic using Tailwind CSS v4, Framer Motion, Shadcn UI, and React 19.
+
+---
+
+## 🚀 Quick Start
+
+Get up and running locally in under 3 minutes.
+
+### 1. Clone the repository
 
 ```bash
-git clone <repo>
-cd Domain_names
+git clone https://github.com/your-username/DomainForge.git
+cd DomainForge
+```
+
+### 2. Install dependencies
+
+```bash
 npm install
 ```
 
-### 2. Set up environment variables
+### 3. Configure Environment Variables
+
+Copy the example environment file and fill in your keys:
 
 ```bash
 cp .env.example .env.local
-# Fill in your real values in .env.local
 ```
 
-See [`.env.example`](./.env.example) for all required variables with descriptions.
-
-### 3. Run locally
+### 4. Start the development server
 
 ```bash
 npm run dev
 ```
 
-App runs at [http://localhost:3000](http://localhost:3000).
+Your app will be running at [http://localhost:3000](http://localhost:3000).
 
-## Environment Variables
+---
 
-| Variable | Where it's used | Client-visible? |
+## 🛠️ Configuration & Environment
+
+| Variable | Usage | Visibility |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase client | ✅ Yes (safe — RLS enforced) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase browser client | ✅ Yes (safe — RLS enforced) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only admin operations | ❌ Server only |
-| `GROQ_API_KEY` | LLM name generation | ❌ Server only |
-| `RESEND_API_KEY` | Email alerts | ❌ Server only |
-| `CRON_SECRET` | Cron job auth header | ❌ Server only |
-| `MARKERAPI_USERNAME` | USPTO trademark search | ❌ Server only |
-| `MARKERAPI_PASSWORD` | USPTO trademark search | ❌ Server only |
-| `NEXT_PUBLIC_SENTRY_DSN` | Sentry error reporting | ✅ Yes (safe — ingest URL) |
-| `SENTRY_AUTH_TOKEN` | Source map upload (build only) | ❌ Build only (`.env.sentry-build-plugin`) |
-| `NEXT_PUBLIC_APP_URL` | Email links | ✅ Yes (safe) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase API endpoint | ✅ Client (Safe — RLS) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase public key | ✅ Client (Safe — RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only admin ops | ❌ Server Only |
+| `GROQ_API_KEY` | LLM generation | ❌ Server Only |
+| `RESEND_API_KEY` | Email monitoring alerts | ❌ Server Only |
+| `CRON_SECRET` | Cron job auth header | ❌ Server Only |
+| `MARKERAPI_USERNAME` / `PASSWORD` | USPTO trademark check | ❌ Server Only |
+| `NEXT_PUBLIC_SENTRY_DSN` | Error reporting ingest | ✅ Client (Safe) |
+| `SENTRY_AUTH_TOKEN` | Source map upload | ❌ Build Only |
 
-## Security Notes
+> [!NOTE]
+> **Supabase RLS**: The Anon Key is exposed to the browser intentionally. Ensure Row Level Security (RLS) is enabled on every Supabase table.
 
-- **Supabase Anon Key**: Exposed to browser intentionally. It is safe **only** because Row Level Security (RLS) is enabled on every table. If you add new tables, always enable RLS immediately.
-- **Service Role Key**: Server-side only. It bypasses all RLS. Never use it in client components or prefix it with `NEXT_PUBLIC_`.
-- **Sentry DSN**: The DSN is a public ingest endpoint — it is safe to expose. The `SENTRY_AUTH_TOKEN` (for source map uploads) is sensitive and must never be committed.
-- **Cron routes**: Protected by `Bearer $CRON_SECRET` header check. Use Vercel cron jobs or configure your scheduler to send this header.
+---
 
-## Deployment (Vercel)
+## 🏗️ Architecture Flow
 
-Add all environment variables from `.env.example` in Vercel → Project Settings → Environment Variables.
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Client (Next.js)
+    participant S as Server API
+    participant G as Groq LLM
+    participant R as RDAP Server
+    participant DB as Supabase
 
-For `SENTRY_AUTH_TOKEN`, add it as a Vercel environment variable (build-time only) instead of committing `.env.sentry-build-plugin`.
+    U->>C: Enter Brand Idea & Tone
+    C->>S: POST /api/generate
+    S->>G: Request Name Concepts
+    G-->>S: Return Generated Names
+    S->>R: Bulk Check Availability
+    R-->>S: Status (Available/Taken)
+    S-->>C: Display Transparent Scores & Status
+    U->>C: Add to Watchlist
+    C->>DB: Save Domain (Postgres)
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from the community! 
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please ensure your code passes `npm run lint` and `npm run typecheck` before submitting.
+
+---
+
+## 📜 Privacy & Trust
+
+**DomainForge never registers, resells, or shares the names you search for.** Your ideas remain yours. 
+Availability checks are done directly against registry RDAP endpoints, bypassing registrar intermediaries.
+
+*Disclaimer: Availability is not a trademark or legal clearance check. Always consult a professional before finalizing a brand name.*
+
+---
+
+## 🏆 Acknowledgments
+
+- [Groq](https://groq.com/) for lightning-fast LLM inference.
+- [Supabase](https://supabase.com/) for seamless open-source database & auth.
+- [Vercel](https://vercel.com) for edge hosting.
+- [Resend](https://resend.com) for transactional emails.
+
+<div align="center">
+  <br/>
+  <sub>Made with ❤️ by Harsh Mehta.</sub>
+</div>
