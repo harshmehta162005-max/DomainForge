@@ -44,8 +44,8 @@ function StatusDot({ status }: { status: string }) {
     status === "available"
       ? "bg-green-400"
       : status === "taken"
-      ? "bg-red-400"
-      : "bg-zinc-600"
+        ? "bg-red-400"
+        : "bg-zinc-600"
   return <span className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0", color)} />
 }
 
