@@ -23,6 +23,7 @@ interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
   userEmail?: string | null
+  userAvatarUrl?: string | null
 }
 
 const NAV_ITEMS = [

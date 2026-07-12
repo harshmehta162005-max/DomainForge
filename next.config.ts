@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://*.supabase.co",
+              "img-src 'self' data: blob: https://*.supabase.co https://xubohuah.github.io",
               "connect-src 'self' https://*.supabase.co https://*.ingest.us.sentry.io https://*.sentry.io",
               "frame-src 'none'",
               "object-src 'none'",
@@ -46,6 +46,15 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'xubohuah.github.io',
+        pathname: '/**',
+      },
+    ],
   },
 };
 
