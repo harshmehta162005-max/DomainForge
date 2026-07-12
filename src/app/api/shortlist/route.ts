@@ -122,7 +122,7 @@ export async function POST(request: Request) {
   if (error) {
     console.error("[POST /api/shortlist] Supabase error:", JSON.stringify(error, null, 2))
     return NextResponse.json(
-      { error: "Failed to save domain. Try again.", code: "DB_ERROR", detail: error.message },
+      { error: "Failed to save domain. Try again.", code: "DB_ERROR" },
       { status: 500 },
     )
   }

@@ -21,15 +21,32 @@ export async function DELETE() {
       }
     )
 
+    // ── 1. Delete avatar from Storage before deleting the user ──────────────
+    // Avatar path is {user.id}/avatar.{ext} — we find the exact file by listing
+    // the user's folder, so we don't need to guess the extension.
+    try {
+      const { data: avatarFiles } = await supabaseAdmin.storage
+        .from("avatars")
+        .list(user.id)
+
+      if (avatarFiles && avatarFiles.length > 0) {
+        const paths = avatarFiles.map((f) => `${user.id}/${f.name}`)
+        await supabaseAdmin.storage.from("avatars").remove(paths)
+      }
+    } catch {
+      // Non-fatal — storage bucket may not exist or user never uploaded an avatar.
+      // Proceed with account deletion regardless.
+    }
+
+    // ── 2. Delete the user from Supabase Auth ────────────────────────────────
+    // This cascades to user_settings, watchlist, shortlist, activity_history
+    // via the FK ON DELETE CASCADE constraints in the database.
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id)
 
     if (error) {
       console.error("Failed to delete user:", error)
       return NextResponse.json({ error: "Failed to delete account" }, { status: 500 })
     }
-
-    // Note: Due to foreign key constraints with ON DELETE CASCADE, 
-    // the user's data in user_settings and watchlist will automatically be deleted.
 
     return NextResponse.json({ success: true })
   } catch (error) {

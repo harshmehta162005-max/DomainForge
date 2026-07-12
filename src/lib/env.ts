@@ -46,6 +46,10 @@ export const EnvSchema = z.object({
     z.string().url().default("http://localhost:3000"),
   ),
   CRON_SECRET: optionalStr,
+
+  // Sentry error monitoring DSN
+  // Safe to expose client-side — it's just the ingest endpoint, not an auth token.
+  NEXT_PUBLIC_SENTRY_DSN: optionalUrl,
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),

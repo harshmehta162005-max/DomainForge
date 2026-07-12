@@ -155,7 +155,7 @@ export function parseGenerationOutput(raw: string): Result<RawSuggestion[]> {
     parsed = JSON.parse(cleaned)
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown"
-    console.error("[parser] JSON.parse failed:", msg, "\nfirst 400 chars:", cleaned.slice(0, 400))
+    console.error("[parser] JSON.parse failed:", msg)
     return err({ error: `LLM returned invalid JSON: ${msg}`, code: "PARSE_ERROR" })
   }
 
@@ -183,6 +183,5 @@ export function parseGenerationOutput(raw: string): Result<RawSuggestion[]> {
     return err({ error: "LLM returned no usable suggestions", code: "EMPTY_OUTPUT" })
   }
 
-  console.log("[parser] extracted", suggestions.length, "suggestions. First:", suggestions[0]?.name)
   return ok(suggestions)
 }

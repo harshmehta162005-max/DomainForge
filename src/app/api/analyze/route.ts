@@ -166,7 +166,6 @@ export async function POST(request: Request) {
   // Parse social suggestions
   let socialSuggestions: string[] = []
   if (socialResult.status === "fulfilled") {
-    console.log("[analyze] socialResult raw:", JSON.stringify(socialResult.value).slice(0, 200))
     const raw = parseJsonSafe<{ social_suggestions?: unknown }>(socialResult.value)
     if (raw && Array.isArray(raw.social_suggestions)) {
       socialSuggestions = (raw.social_suggestions as unknown[])

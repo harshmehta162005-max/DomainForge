@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json(
-      { error: error.message ?? "Failed to update password" },
+      { error: "Failed to update password. Please try again." },
       { status: 500 }
     )
   }

@@ -10,9 +10,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Explicit field list — no select('*') on user data
     const { data: settings } = await supabase
       .from('user_settings')
-      .select('*')
+      .select('plan, display_name, bio, username, notif_available, notif_expiry, notif_price, weekly_digest')
       .eq('user_id', user.id)
       .single()
 
@@ -20,17 +21,28 @@ export async function GET() {
       return NextResponse.json({ error: "Pro plan required to export data." }, { status: 403 })
     }
 
+    // Explicit field list — never select('*') on user data tables
     const { data: watchlist } = await supabase
       .from('watchlist')
-      .select('*')
+      .select('domain, status, score, tags, price_estimate, alert_enabled, notify_frequency, expires_at, created_at')
       .eq('user_id', user.id)
 
     const exportData = {
       user: {
-        id: user.id,
+        // email is user-facing; omit internal UUID (user.id) from the download
         email: user.email,
+        created_at: user.created_at,
       },
-      settings,
+      settings: {
+        plan: settings.plan,
+        display_name: settings.display_name ?? null,
+        bio: settings.bio ?? null,
+        username: settings.username ?? null,
+        notif_available: settings.notif_available,
+        notif_expiry: settings.notif_expiry,
+        notif_price: settings.notif_price,
+        weekly_digest: settings.weekly_digest,
+      },
       watchlist: watchlist || [],
       exported_at: new Date().toISOString()
     }

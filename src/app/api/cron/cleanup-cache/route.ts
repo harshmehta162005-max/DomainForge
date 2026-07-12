@@ -45,6 +45,6 @@ export async function GET(request: Request) {
     })
   } catch (error: any) {
     console.error("Cache cleanup error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: "Cache cleanup failed. Check server logs." }, { status: 500 })
   }
 }

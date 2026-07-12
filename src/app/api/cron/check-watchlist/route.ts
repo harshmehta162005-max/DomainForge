@@ -281,8 +281,7 @@ export async function GET(request: Request) {
       alertsSent: emailsToSend.length,
     })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Unknown error"
     console.error("Cron Error:", error)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: "Cron job failed. Check server logs." }, { status: 500 })
   }
 }
