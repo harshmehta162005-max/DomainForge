@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useRouter } from 'next/navigation';
 
 export default function Pricing() {
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -27,6 +28,7 @@ export default function Pricing() {
       if (!res.ok) {
         setErrorMsg(data.error || "Failed to upgrade. Please try again.");
       } else {
+        setShowConfirm(false);
         setShowSuccess(true);
       }
     } catch {
@@ -54,9 +56,6 @@ export default function Pricing() {
 					viewport={{ once: true }}
 					className="mx-auto max-w-xl space-y-2"
 				>
-					<div className="flex justify-center">
-						<div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-1 font-mono text-zinc-300">Pricing</div>
-					</div>
 					<h2 className="mt-3 text-center text-2xl font-bold tracking-tighter text-zinc-100 md:text-3xl">
 						Upgrade to DomainForge Pro
 					</h2>
@@ -103,7 +102,7 @@ export default function Pricing() {
 							<Button 
                     className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-100" 
                     variant="outline" 
-                    onClick={handleUpgrade}
+                    onClick={() => setShowConfirm(true)}
                     disabled={loading}
                   >
 								{loading ? "Processing..." : "Start Your Journey"}
@@ -157,7 +156,7 @@ export default function Pricing() {
 							</div>
 							<Button 
                     	className="w-full bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-medium"
-                    	onClick={handleUpgrade}
+                    	onClick={() => setShowConfirm(true)}
                     	disabled={loading}
                   		>
 								{loading ? "Processing..." : "Get Started Now"}
@@ -192,6 +191,40 @@ export default function Pricing() {
 					</motion.div>
 				</div>
 			</div>
+
+      {/* Confirmation Dialog */}
+      <Dialog 
+        open={showConfirm} 
+        onOpenChange={(open) => {
+          if (!loading) setShowConfirm(open);
+        }}
+      >
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Confirm Upgrade</DialogTitle>
+            <DialogDescription className="text-zinc-400 mt-2">
+              Are you sure you want to upgrade to DomainForge Pro? This will unlock all premium features.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="border-t border-zinc-800 bg-zinc-900/50 pt-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowConfirm(false)}
+              disabled={loading}
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-medium"
+              onClick={handleUpgrade}
+              disabled={loading}
+            >
+              {loading ? "Processing..." : "Yes, upgrade to Pro"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Success Dialog */}
       <Dialog 

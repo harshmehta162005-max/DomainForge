@@ -19,7 +19,9 @@ export const EnvSchema = z.object({
   // Supabase (required)
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: optionalStr,
+  // Service role key is required — used by account deletion, cron jobs, billing, and notifications.
+  // Without it these features silently fail or 500 at runtime.
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
   // Groq (required)
   GROQ_API_KEY: z.string().min(1),
@@ -45,7 +47,13 @@ export const EnvSchema = z.object({
     (v) => (v === "" ? "http://localhost:3000" : v),
     z.string().url().default("http://localhost:3000"),
   ),
-  CRON_SECRET: optionalStr,
+  // Cron secret — required in production to protect cron endpoints from unauthenticated calls.
+  CRON_SECRET: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    process.env.NODE_ENV === "production"
+      ? z.string().min(8, "CRON_SECRET must be at least 8 characters in production")
+      : z.string().min(1).optional(),
+  ),
 
   // Sentry error monitoring DSN
   // Safe to expose client-side — it's just the ingest endpoint, not an auth token.
@@ -62,11 +70,13 @@ export type Env = z.infer<typeof EnvSchema>
 const parsed = EnvSchema.safeParse(process.env)
 
 if (!parsed.success) {
-  console.error("❌ Invalid environment variables:")
+  console.error("\u274c Invalid environment variables:")
   console.error(parsed.error.flatten().fieldErrors)
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Invalid environment variables — check .env.local")
-  }
+  // Always throw — running with broken config causes confusing silent failures
+  // that are much harder to debug than a clear startup error.
+  throw new Error(
+    "Invalid environment variables — fix the above errors before starting the app."
+  )
 }
 
-export const env = parsed.success ? parsed.data : ({} as Env)
+export const env = parsed.data

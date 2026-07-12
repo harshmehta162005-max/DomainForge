@@ -961,7 +961,7 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                           </a>
                         ) : (
                           <a
-                            href={`http://${item.domain}`}
+                            href={`https://${encodeURIComponent(item.domain).replace(/%2F/g, '/')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="h-7 px-3 rounded-md flex items-center justify-center text-xs font-semibold bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:bg-zinc-700 hover:text-zinc-200 transition-all duration-200 whitespace-nowrap active:scale-95"
@@ -1018,7 +1018,7 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                     </a>
                   ) : (
                     <a
-                      href={`http://${item.domain}`}
+                      href={`https://${encodeURIComponent(item.domain).replace(/%2F/g, '/')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="h-7 px-4 rounded-md flex items-center justify-center text-xs font-semibold bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:bg-zinc-700 hover:text-zinc-200 transition-all duration-200 active:scale-95"

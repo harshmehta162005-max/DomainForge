@@ -15,7 +15,6 @@ export function captureWarn(message: string, context?: Record<string, unknown>) 
 }
 
 export function captureEvent(name: string, context?: Record<string, unknown>) {
-  console.log(`[OBSERVABILITY EVENT] ${name}`, context || {});
-  // Depending on analytics provider (PostHog/Amplitude/etc.), emit here.
-  // We'll log it out as required by the PRD.
+  // Forward named events to Sentry as breadcrumbs/messages for observability.
+  Sentry.captureMessage(name, { level: 'info', extra: context });
 }

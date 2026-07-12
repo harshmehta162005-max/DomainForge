@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { createClient } from "@/lib/supabase/server"
 import type { SocialHandles } from "@/types/domain"
 
 const SocialCheckRequestSchema = z.object({
-  domain: z.string(),
-  baseName: z.string(),
+  domain: z.string().min(3).max(253),
+  // baseName must look like a real domain base — only word chars and hyphens
+  baseName: z.string().min(2).max(63).regex(/^[a-zA-Z0-9_-]+$/, "Invalid base name"),
 })
 
 /**
@@ -23,6 +25,14 @@ const SocialCheckRequestSchema = z.object({
  * Brandfetch, or a custom browser-based checker).
  */
 export async function POST(request: Request) {
+  // Auth required — without this, anyone could use our server as a free proxy
+  // to enumerate social handles at scale, getting our IP banned by X/Instagram.
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+  }
+
   let body: unknown
   try {
     body = await request.json()

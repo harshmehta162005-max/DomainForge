@@ -154,7 +154,7 @@ export default function AuthPage() {
       } else if (msg.includes("Password should be at least")) {
         setError("Password must be at least 6 characters.")
       } else {
-        setError(msg)
+        setError("Something went wrong. Please try again.")
       }
     } finally {
       setLoading(false)

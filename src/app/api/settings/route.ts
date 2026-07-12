@@ -30,7 +30,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("user_settings")
-    .select("*")
+    .select("plan, marketing_emails, weekly_digest, security_alerts, notif_available, notif_expiry, notif_price, notif_master, notif_frequency, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, timezone, default_tlds, auto_check, check_interval")
     .eq("user_id", user.id)
     .single()
 

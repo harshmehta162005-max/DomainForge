@@ -53,9 +53,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ results: output })
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error"
+    console.error("[check-domain] availability check failed:", e)
     return NextResponse.json(
-      { error: `Availability check failed: ${message}`, code: "RDAP_ERROR" },
+      { error: "Availability check failed. Try again shortly.", code: "RDAP_ERROR" },
       { status: 502 },
     )
   }

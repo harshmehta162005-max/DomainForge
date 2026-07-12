@@ -2,12 +2,26 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getGroqClient, GROQ_MODELS } from "@/lib/groq/client"
 import { estimateDomainPrice } from "@/lib/domain/pipeline"
+import { createClient } from "@/lib/supabase/server"
 
 const ScoreRequestSchema = z.object({
-  domain: z.string().min(1).max(253),
+  // Only accept strings that look like real domains — prevents prompt injection
+  domain: z
+    .string()
+    .min(3)
+    .max(253)
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}$/, "Invalid domain format"),
 })
 
 export async function POST(request: Request) {
+  // Auth required — this endpoint calls Groq (paid API); unauthenticated callers
+  // could exhaust quota at zero cost to themselves.
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+  }
+
   let body: unknown
   try {
     body = await request.json()
