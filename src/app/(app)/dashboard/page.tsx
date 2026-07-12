@@ -166,14 +166,11 @@ export default async function DashboardPage() {
       </div>
 
       {watchlistItems.length > 0 && (
-        <>
-          {/* ── Stats row ────────────────────────────────────────────────────── */}
-          <StatsRow stats={stats} />
-
-          {/* ── Quick actions ────────────────────────────────────────────────── */}
-          <QuickActions />
-        </>
+        <StatsRow stats={stats} />
       )}
+
+      {/* ── Quick actions — always visible so empty dashboard has Add Domain ── */}
+      <QuickActions />
 
       {/* ── Watchlist table ──────────────────────────────────────────────── */}
       <section>

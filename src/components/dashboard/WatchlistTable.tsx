@@ -214,20 +214,46 @@ function SkeletonRow() {
 function EmptyTable() {
   return (
     <tr>
-      <td colSpan={9} className="px-4 py-16 text-center">
-        <p className="text-sm text-zinc-500 mb-4">
-          No domains saved yet. Generate some names to get started.
-        </p>
-        <a
-          href="/generator"
-          className="inline-flex items-center h-9 px-5 rounded-md bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] active:scale-95"
-        >
-          Generate names →
-        </a>
+      <td colSpan={9} className="px-4 py-20 text-center">
+        <div className="flex flex-col items-center gap-4 max-w-xs mx-auto">
+          {/* Icon */}
+          <div className="h-12 w-12 rounded-full bg-zinc-800/60 border border-zinc-700 flex items-center justify-center">
+            <svg className="h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </div>
+          {/* Text */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-zinc-300">Your watchlist is empty</p>
+            <p className="text-xs text-zinc-600">Add a domain manually or generate new names with AI</p>
+          </div>
+          {/* CTAs */}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={() => {
+                const btn = document.getElementById("quick-action-add")
+                btn?.click()
+              }}
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add domain
+            </button>
+            <a
+              href="/generator"
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
+            >
+              Generate names
+            </a>
+          </div>
+        </div>
       </td>
     </tr>
   )
 }
+
 
 type SortField = "domain" | "score" | "status" | "createdAt"
 type SortDir = "asc" | "desc"
