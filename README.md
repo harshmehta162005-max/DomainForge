@@ -8,37 +8,83 @@
   [![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://react.dev/)
   [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_v4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
   [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+  [![Groq](https://img.shields.io/badge/AI-Groq-F55036?style=for-the-badge)](https://groq.com/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
   <p align="center">
-    DomainForge helps you find the perfect domain name using AI-powered suggestions tailored to your brand's unique tone, seamlessly verifying availability and trademark risk in real-time.
+    <strong>Stop manually typing names into a registrar to see if they are taken.</strong><br>
+    DomainForge combines ultra-fast AI generation with real-time ICANN RDAP lookups, multi-layered caching, and trademark risk analysis to help you secure the perfect brand identity in milliseconds.
   </p>
   
   [Quick Start](#-quick-start) •
-  [Key Features](#-key-features) •
-  [Architecture](#-architecture) •
-  [Documentation](#-documentation)
+  [Key Features](#-core-features) •
+  [Engineering](#️-engineering--performance) •
+  [Architecture](#-architecture)
 
 </div>
 
 ---
 
-## ✨ Key Features
+## 💡 Why DomainForge?
 
-DomainForge is built for indie hackers, founders, and creators who need brandable, available domain names without the manual guesswork.
+Finding a domain name today is fundamentally broken. You come up with a great idea, check a registrar, find it's taken, and repeat this cycle until you settle for a mediocre name. 
 
-* 🧠 **Multi-dimensional AI Generation:** Powered by Groq, generate names based on business description, category, and precise tone presets (Playful, Corporate, Minimal, Bold).
-* ⚡ **Real-time Availability Checking:** ICANN-standard RDAP queries for 95%+ accuracy on Tier 1 TLDs (.com, .io, .ai, .dev), avoiding fragile registrar scraping.
-* 🛡️ **Trademark Risk & Social Handles:** First-class social handle checking and baseline trademark risk scoring via USPTO data.
-* 📊 **Transparent Domain Scoring:** Decomposed scores grading Brandability, Typeability, Keyword relevance, and TLD trust. No opaque black-box numbers.
-* 🔔 **Watchlist & Alerts:** Save domains to a shortlist and monitor their availability over time via automated email alerts (powered by Resend).
-* 🎨 **Stunning UI/UX:** Built with a modern 2026 aesthetic using Tailwind CSS v4, Framer Motion, Shadcn UI, and React 19.
+**DomainForge flips this workflow:**
+You describe your business, audience, and preferred tone (e.g., *Playful, Professional, Minimal*). DomainForge generates dozens of highly-targeted, brandable names and **instantly checks their availability** across your preferred TLDs (.com, .io, .ai, .dev), alongside social handle availability. It's the ultimate naming co-pilot.
+
+---
+
+## ✨ Core Features
+
+### 🧠 Multi-dimensional AI Naming
+Powered by the Groq LLM inference engine, DomainForge doesn't just append random prefixes. It understands semantic context. Use our intuitive Tone Presets to guide the AI, or dive into Advanced Sliders (Modern, Cool, Short) for absolute granular control.
+
+### ⚡ Real-Time Availability (Tiered Accuracy)
+We use direct ICANN-standard RDAP queries. No fragile registrar scraping.
+- **Tier 1 (.com, .io, .ai, .co, .dev):** 95%+ accuracy with real-time green/red status.
+- **Parked Domain Detection:** If a domain is taken but parked for resale, we'll try to surface estimated aftermarket pricing so you aren't met with a dead end.
+
+### 🛡️ Social Handle & Trademark Risk
+Your domain is only half the battle. DomainForge automatically checks exact-match availability for your name on major social platforms (X, Instagram). It also runs a baseline risk check against USPTO trademark data to keep you legally safe.
+
+### 📊 Transparent, Decomposed Scoring
+We hate opaque "Brand Scores". Every suggestion is graded on transparent metrics:
+- **Brandability** (Avoids hyphens/numbers)
+- **Typeability** (Brevity & pronunciation)
+- **Keyword Relevance** (Match to your prompt)
+- **TLD Trust** (.com > .io > .co)
+
+### 🔔 Watchlist & Automated Alerts
+Found a domain you love but isn't available? Add it to your Watchlist. DomainForge uses cron jobs and Resend to monitor the domain and alert you via email the moment it drops.
+
+### 💬 Context-Aware AI Assistant
+Built directly into the dashboard, our embedded AI Assistant acts as your personal domain consultant. Powered by Groq, the chatbot is fully aware of your profile, securely reading your **Watchlist, Shortlists, and personal notes** in real-time. Ask it to evaluate your saved domains, brainstorm SEO-friendly alternatives, or assess brand strength based on the exact domains you're already monitoring.
+
+---
+
+## ⚙️ Engineering & Performance
+
+DomainForge isn't just a UI wrapper; it's a highly optimized, production-ready application built for scale and reliability.
+
+- **Aggressive Multi-Tier Caching:** Implements Redis alongside a Supabase `domain_cache` layer (with intelligent 5-minute TTLs) to drastically reduce expensive RDAP calls and prevent redundant LLM regeneration.
+- **Edge-Optimized Architecture:** Built on Next.js 16 with Edge API routes to ensure globally distributed, low-latency execution (<3s response times).
+- **Abuse Protection & Rate Limiting:** Built-in IP/fingerprint rate limiting secures the LLM endpoints from runaway costs and prevents registrars from blocking our RDAP requests.
+- **Graceful Degradation:** A resilient architecture that falls back gracefully if an RDAP registry times out or a third-party API fails. You will always see partial results or "unverified" flags, never a broken UI.
+- **Enterprise-Grade Security:** Utilizes Supabase Row Level Security (RLS) to ensure absolute data isolation for user watchlists and secure authentication flows.
+
+---
+
+## 🎯 Who is this for?
+
+- **Indie Hackers & Founders:** Stop wasting days naming your startup. Get a name, buy the domain, and start building.
+- **"Vibe Coders":** If you use tools like Lovable, Bolt, or Replit to build MVPs in hours, you need a naming tool that moves just as fast.
+- **Marketing Agencies:** Generate highly relevant, available domain lists for your clients in a fraction of the time.
 
 ---
 
 ## 🚀 Quick Start
 
-Get up and running locally in under 3 minutes.
+Get your local environment running in under 3 minutes.
 
 ### 1. Clone the repository
 
@@ -55,23 +101,9 @@ npm install
 
 ### 3. Configure Environment Variables
 
-Copy the example environment file and fill in your keys:
-
 ```bash
 cp .env.example .env.local
 ```
-
-### 4. Start the development server
-
-```bash
-npm run dev
-```
-
-Your app will be running at [http://localhost:3000](http://localhost:3000).
-
----
-
-## 🛠️ Configuration & Environment
 
 | Variable | Usage | Visibility |
 |---|---|---|
@@ -82,11 +114,14 @@ Your app will be running at [http://localhost:3000](http://localhost:3000).
 | `RESEND_API_KEY` | Email monitoring alerts | ❌ Server Only |
 | `CRON_SECRET` | Cron job auth header | ❌ Server Only |
 | `MARKERAPI_USERNAME` / `PASSWORD` | USPTO trademark check | ❌ Server Only |
-| `NEXT_PUBLIC_SENTRY_DSN` | Error reporting ingest | ✅ Client (Safe) |
-| `SENTRY_AUTH_TOKEN` | Source map upload | ❌ Build Only |
 
-> [!NOTE]
-> **Supabase RLS**: The Anon Key is exposed to the browser intentionally. Ensure Row Level Security (RLS) is enabled on every Supabase table.
+### 4. Start the development server
+
+```bash
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) to start generating!
 
 ---
 
@@ -95,54 +130,43 @@ Your app will be running at [http://localhost:3000](http://localhost:3000).
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant C as Client (Next.js)
-    participant S as Server API
+    participant C as Next.js Client
+    participant S as Next.js API Route
     participant G as Groq LLM
-    participant R as RDAP Server
-    participant DB as Supabase
+    participant R as RDAP Directory
+    participant DB as Supabase Cache
 
     U->>C: Enter Brand Idea & Tone
     C->>S: POST /api/generate
-    S->>G: Request Name Concepts
+    S->>G: Request Name Concepts (via prompt hash)
     G-->>S: Return Generated Names
-    S->>R: Bulk Check Availability
+    S->>DB: Check cached availability (Redis/Postgres)
+    S->>R: Bulk Check uncached domains
     R-->>S: Status (Available/Taken)
     S-->>C: Display Transparent Scores & Status
     U->>C: Add to Watchlist
-    C->>DB: Save Domain (Postgres)
+    C->>DB: Save Domain to Postgres
 ```
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! 
+We welcome contributions! Whether it's adding a new TLD parser, improving the AI prompts, or polishing the UI:
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-Please ensure your code passes `npm run lint` and `npm run typecheck` before submitting.
-
 ---
 
-## 📜 Privacy & Trust
+## 📜 Trust & Privacy
 
-**DomainForge never registers, resells, or shares the names you search for.** Your ideas remain yours. 
-Availability checks are done directly against registry RDAP endpoints, bypassing registrar intermediaries.
+**We never register, warehouse, or share the names you search for.** Your ideas are yours alone. All availability checks are performed directly against ICANN registry endpoints, bypassing registrar intermediaries entirely.
 
-*Disclaimer: Availability is not a trademark or legal clearance check. Always consult a professional before finalizing a brand name.*
-
----
-
-## 🏆 Acknowledgments
-
-- [Groq](https://groq.com/) for lightning-fast LLM inference.
-- [Supabase](https://supabase.com/) for seamless open-source database & auth.
-- [Vercel](https://vercel.com) for edge hosting.
-- [Resend](https://resend.com) for transactional emails.
+*Disclaimer: Availability checks are not a substitute for a comprehensive trademark or legal clearance check. Always consult a professional before finalizing a commercial brand name.*
 
 <div align="center">
   <br/>
