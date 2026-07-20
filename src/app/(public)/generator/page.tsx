@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import {
-  ArrowLeft, Wand2, ChevronDown, ChevronUp, LayoutDashboard, SlidersHorizontal,
+  ArrowLeft, Wand2, ChevronDown, ChevronUp, LayoutDashboard, SlidersHorizontal, X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useGenerate } from "@/hooks/use-generate"
@@ -256,10 +256,16 @@ export default function GeneratorPage() {
           </Link>
 
           <button
-            onClick={() => setSidebarOpen(p => !p)}
+            onClick={() => {
+              if (isGenerating) {
+                reset()
+              } else {
+                setSidebarOpen(p => !p)
+              }
+            }}
             className="h-8 w-8 flex items-center justify-center rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-100 transition-colors duration-150 lg:hidden"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+            {isGenerating ? <X className="h-4 w-4 text-red-400" strokeWidth={1.5} /> : <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />}
           </button>
         </div>
       </header>
@@ -370,12 +376,12 @@ export default function GeneratorPage() {
 
         <button
           onClick={() => setSidebarOpen(p => !p)}
-          className="hidden lg:flex items-center justify-center w-4 hover:bg-zinc-800 border-r border-zinc-800 text-zinc-700 hover:text-zinc-400 transition-colors duration-150 flex-shrink-0"
+          className="hidden lg:flex items-center justify-center w-6 bg-zinc-950 hover:bg-zinc-900 border-r border-zinc-800 text-zinc-500 hover:text-cyan-400 transition-colors duration-150 flex-shrink-0"
           title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {sidebarOpen
-            ? <ChevronDown className="h-3.5 w-3.5 -rotate-90" strokeWidth={1.5} />
-            : <ChevronDown className="h-3.5 w-3.5 rotate-90" strokeWidth={1.5} />
+            ? <ChevronDown className="h-4 w-4 -rotate-90" strokeWidth={1.5} />
+            : <ChevronDown className="h-4 w-4 rotate-90" strokeWidth={1.5} />
           }
         </button>
 
@@ -403,28 +409,76 @@ export default function GeneratorPage() {
         </main>
       </div>
 
-      {/* ── Mobile: bottom sheet sidebar ──────────────────────────────────── */}
+      {/* ── Mobile: full space sidebar ──────────────────────────────────── */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-30 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-zinc-950/80" onClick={() => setSidebarOpen(false)} />
-          <div className="relative bg-zinc-900 border-t border-zinc-700 rounded-t-[6px] max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-center pt-2 pb-1">
-              <div className="w-8 h-1 bg-zinc-700 rounded-full" />
+        <div className="lg:hidden absolute top-14 inset-x-0 bottom-0 z-30 bg-zinc-950 overflow-y-auto pb-6">
+          <div className="p-4 space-y-5">
+            <PromptBox
+              value={session.description}
+              onChange={v => updateSession("description", v)}
+            />
+            <CategoryPicker
+              selected={session.categories}
+              onChange={v => updateSession("categories", v)}
+            />
+            
+            {/* Target audience */}
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                Target audience
+              </label>
+              <input
+                type="text"
+                value={session.targetAudience}
+                onChange={e => updateSession("targetAudience", e.target.value)}
+                placeholder="Remote teams, freelancers, enterprises…"
+                className="w-full h-9 px-3 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors duration-150"
+              />
             </div>
-            <div className="px-4 pb-4 space-y-5">
-              <PromptBox
-                value={session.description}
-                onChange={v => updateSession("description", v)}
-              />
-              <CategoryPicker
-                selected={session.categories}
-                onChange={v => updateSession("categories", v)}
-              />
-              <TonePresets
-                selected={session.tonePreset}
-                onChange={updateTonePreset}
-              />
-              {/* Not rendering advanced in mobile bottom sheet to keep it brief */}
+
+            <TonePresets
+              selected={session.tonePreset}
+              onChange={updateTonePreset}
+            />
+
+            {/* Advanced options */}
+            <div className="border-t border-zinc-800 pt-4">
+              <button
+                onClick={() => setAdvancedOpen(p => !p)}
+                className="flex items-center justify-between w-full text-xs font-medium text-zinc-400 uppercase tracking-wider hover:text-zinc-200 transition-colors duration-150"
+              >
+                <span>Advanced options</span>
+                {advancedOpen
+                  ? <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  : <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.5} />
+                }
+              </button>
+              {advancedOpen && (
+                <div className="space-y-5 mt-4">
+                  <StyleSliders
+                    values={session.sliders}
+                    onChange={(k, v) => {
+                      updateSlider(k, v)
+                      updateSession("tonePreset", undefined)
+                    }}
+                  />
+                  <AdvancedOptions
+                    tlds={session.tlds}
+                    onTldsChange={v => updateSession("tlds", v)}
+                    namingStyles={session.namingStyles}
+                    onNamingStylesChange={v => updateSession("namingStyles", v)}
+                    maxLength={session.maxLength}
+                    onMaxLengthChange={v => updateSession("maxLength", v)}
+                    excludeWords={session.excludeWords}
+                    onExcludeWordsChange={v => updateSession("excludeWords", v)}
+                    count={session.count}
+                    onCountChange={v => updateSession("count", v)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2">
               <GenerateButton
                 onClick={() => { handleGenerate(); setSidebarOpen(false) }}
                 loading={isGenerating}

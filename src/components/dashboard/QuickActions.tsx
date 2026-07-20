@@ -334,7 +334,7 @@ export function QuickActions() {
             )}
           >
             <RefreshCw className={cn("h-4 w-4 flex-shrink-0", refreshing && "animate-spin")} strokeWidth={1.5} />
-            <span className="truncate">{refreshing ? "Checking…" : refreshMsg ?? "Refresh"}</span>
+            <span className="truncate">{refreshing ? "Checking…" : refreshMsg ?? "Refresh all"}</span>
           </button>
         </div>
       </div>

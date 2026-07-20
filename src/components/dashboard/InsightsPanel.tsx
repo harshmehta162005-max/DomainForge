@@ -5,7 +5,7 @@ import type { AvailabilityTrend, ScoreDistribution } from "@/types/dashboard"
 function BarChart({ data }: { data: ScoreDistribution[] }) {
   const maxCount = Math.max(...data.map(d => d.count))
   return (
-    <div className="flex items-end gap-2 h-20 mt-2">
+    <div className="flex items-end gap-2 h-20 lg:h-28 mt-2 transition-all duration-200">
       {data.map(({ range, count }) => {
         const heightPct = (count / maxCount) * 100
         return (
@@ -52,7 +52,7 @@ function LineChart({ data }: { data: AvailabilityTrend[] }) {
           <span className="text-xs text-zinc-500">Taken</span>
         </div>
       </div>
-      <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-16">
+      <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-16 lg:h-24 transition-all duration-200">
         {/* Grid lines */}
         {[0, 0.5, 1].map(t => (
           <line
@@ -112,8 +112,8 @@ export function InsightsPanel({ trend, scoreDistribution }: InsightsPanelProps) 
         <h2 className="text-sm font-medium text-zinc-200">Insights</h2>
       </div>
 
-      {/* Availability trend + Score distribution side-by-side on md+, stacked on mobile */}
-      <div className="px-4 py-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Availability trend + Score distribution stacked vertically */}
+      <div className="px-4 py-4 flex flex-col gap-6">
         {/* Availability trend */}
         <div>
           <div className="flex items-center justify-between">

@@ -113,9 +113,9 @@ function ResultsToolbar({
   ]
 
   return (
-    <div className="border-b border-zinc-800 bg-zinc-950/80 sticky top-0 z-10">
+    <div className="bg-zinc-950/80 sticky top-0 z-10">
       {/* Tabs */}
-      <div className="flex items-center gap-0 px-4 overflow-x-auto">
+      <div className="flex items-center gap-0 px-4 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {tabs.map(t => (
           <button
             key={t.key}
@@ -359,7 +359,7 @@ export function ResultsArea({
         )}
 
         {/* Metadata footer */}
-        {phase === "done" && suggestions.length > 0 && (
+        {phase === "done" && displayed.length > 0 && (
           <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-zinc-800/60">
             <div className="flex items-center justify-between">
               <p className="text-xs text-zinc-700">
