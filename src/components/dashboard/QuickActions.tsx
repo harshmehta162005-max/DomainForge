@@ -189,7 +189,7 @@ function AddDomainModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+            className="min-h-11 md:h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
           >
             Cancel
           </button>
@@ -197,7 +197,7 @@ function AddDomainModal({ onClose }: { onClose: () => void }) {
             type="submit"
             disabled={domainName.trim().length < 2 || loading || success}
             className={cn(
-              "inline-flex items-center gap-2 h-9 px-4 rounded-[4px] text-sm font-medium transition-all duration-150 active:scale-[0.98]",
+              "inline-flex items-center gap-2 min-h-11 md:h-9 px-4 rounded-[4px] text-sm font-medium transition-all duration-150 active:scale-[0.98]",
               success
                 ? "bg-green-400/20 border border-green-800 text-green-400"
                 : "bg-cyan-400 text-zinc-950 hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -290,50 +290,53 @@ export function QuickActions() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Primary CTA */}
+      {/* Mobile: primary CTA full-width row 1, three secondary buttons grid row 2.
+          md+: all four in a flex-row at natural widths. */}
+      <div className="space-y-2 md:space-y-0 md:flex md:items-center md:gap-2">
+        {/* Primary CTA — full-width on mobile */}
         <Link
           href="/generator"
           id="quick-action-generate"
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 w-full md:w-auto min-h-11 md:h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
         >
           <Wand2 className="h-4 w-4" strokeWidth={1.5} />
           New generation
         </Link>
 
-        {/* Add domain */}
-        <button
-          id="quick-action-add"
-          onClick={() => setAddModalOpen(true)}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
-        >
-          <Plus className="h-4 w-4" strokeWidth={1.5} />
-          Add domain
-        </button>
+        {/* Secondary actions — 3-col grid on mobile, inline on md+ */}
+        <div className="grid grid-cols-3 gap-2 md:contents">
+          <button
+            id="quick-action-add"
+            onClick={() => setAddModalOpen(true)}
+            className="flex items-center justify-center gap-2 min-h-11 md:h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.5} />
+            <span>Add domain</span>
+          </button>
 
-        {/* Export CSV */}
-        <button
-          id="quick-action-export"
-          onClick={handleExport}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
-        >
-          <Download className="h-4 w-4" strokeWidth={1.5} />
-          Export CSV
-        </button>
+          <button
+            id="quick-action-export"
+            onClick={handleExport}
+            className="flex items-center justify-center gap-2 min-h-11 md:h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
+          >
+            <Download className="h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden xs:inline sm:inline">Export CSV</span>
+            <span className="xs:hidden sm:hidden">Export</span>
+          </button>
 
-        {/* Refresh all */}
-        <button
-          id="quick-action-refresh"
-          onClick={handleRefreshAll}
-          disabled={refreshing}
-          className={cn(
-            "inline-flex items-center gap-2 h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150",
-            refreshing && "opacity-60 cursor-not-allowed"
-          )}
-        >
-          <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} strokeWidth={1.5} />
-          {refreshing ? "Checking…" : refreshMsg ?? "Refresh all"}
-        </button>
+          <button
+            id="quick-action-refresh"
+            onClick={handleRefreshAll}
+            disabled={refreshing}
+            className={cn(
+              "flex items-center justify-center gap-2 min-h-11 md:h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150",
+              refreshing && "opacity-60 cursor-not-allowed"
+            )}
+          >
+            <RefreshCw className={cn("h-4 w-4 flex-shrink-0", refreshing && "animate-spin")} strokeWidth={1.5} />
+            <span className="truncate">{refreshing ? "Checking…" : refreshMsg ?? "Refresh"}</span>
+          </button>
+        </div>
       </div>
 
       {addModalOpen && <AddDomainModal onClose={() => setAddModalOpen(false)} />}

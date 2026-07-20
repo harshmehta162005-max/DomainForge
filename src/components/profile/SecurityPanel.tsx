@@ -234,9 +234,14 @@ export function SecurityPanel({ profile }: SecurityPanelProps) {
       {/* Login history / sessions */}
       <Section title="Login & Sessions">
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-500">Last sign-in</span>
-            <span className="text-zinc-300 font-mono text-xs">{lastSeen}</span>
+          <div className="flex items-start justify-between gap-4 text-sm">
+            <span className="text-zinc-500 flex-shrink-0">Last sign-in</span>
+            <div className="text-right min-w-0">
+              <span className="text-zinc-300 font-mono text-xs block">{lastSeen}</span>
+              <span className="text-zinc-700 text-[10px] leading-tight block mt-0.5">
+                Previous session · sign out &amp; back in to refresh
+              </span>
+            </div>
           </div>
           <div className="border-t border-zinc-800" />
           <div className="flex items-center justify-between text-sm">
@@ -244,8 +249,8 @@ export function SecurityPanel({ profile }: SecurityPanelProps) {
             <span className="text-zinc-300 capitalize font-mono text-xs">{profile.provider}</span>
           </div>
           <div className="border-t border-zinc-800" />
-          <div className="flex items-center justify-between text-sm">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
+            <div className="min-w-0">
               <p className="text-zinc-200">Sign out other sessions</p>
               <p className="text-xs text-zinc-600 mt-0.5">
                 Revokes all other active logins while keeping this one
@@ -255,7 +260,7 @@ export function SecurityPanel({ profile }: SecurityPanelProps) {
               onClick={handleSignOutOthers}
               disabled={signOutLoading || signOutDone}
               className={cn(
-                "inline-flex items-center gap-2 h-8 px-3 rounded-[4px] border text-xs transition-colors duration-150 disabled:opacity-50",
+                "inline-flex items-center justify-center gap-2 min-h-11 sm:h-8 w-full sm:w-auto px-4 sm:px-3 rounded-[4px] border text-xs transition-colors duration-150 disabled:opacity-50 flex-shrink-0",
                 signOutDone
                   ? "bg-green-950/30 border-green-900 text-green-400"
                   : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-zinc-100 hover:border-zinc-600"

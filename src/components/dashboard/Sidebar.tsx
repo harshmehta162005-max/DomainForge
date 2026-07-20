@@ -13,9 +13,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Circle,
   Layers,
-  User,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -24,6 +23,10 @@ interface SidebarProps {
   onToggle: () => void
   userEmail?: string | null
   userAvatarUrl?: string | null
+  /** Mobile-only: whether the drawer is slid in */
+  mobileOpen?: boolean
+  /** Mobile-only: close the drawer */
+  onMobileClose?: () => void
 }
 
 const NAV_ITEMS = [
@@ -36,21 +39,28 @@ const NAV_ITEMS = [
   { href: "/dashboard/insights",   label: "Insights",   Icon: BarChart3 },
 ] as const
 
+// ─── Shared nav content (used by both mobile and desktop renders) ──────────────
 
-
-export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
+function NavContent({
+  collapsed,
+  onToggle,
+  onMobileClose,
+  isMobile = false,
+}: {
+  collapsed: boolean
+  onToggle: () => void
+  onMobileClose?: () => void
+  isMobile?: boolean
+}) {
   const pathname = usePathname()
 
   return (
-    <motion.aside
-      animate={{ width: collapsed ? 56 : 240 }}
-      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className="flex-shrink-0 flex flex-col bg-zinc-900 border-r border-zinc-800 overflow-hidden relative z-10"
-    >
+    <>
       {/* Logo row */}
       <div className="h-14 flex items-center justify-between px-3 border-b border-zinc-800 flex-shrink-0">
         <AnimatePresence mode="wait">
-          {!collapsed && (
+          {/* On mobile the drawer is always expanded; on desktop respect `collapsed` */}
+          {(!collapsed || isMobile) && (
             <motion.div
               key="logo"
               initial={{ opacity: 0 }}
@@ -65,7 +75,7 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
               </span>
             </motion.div>
           )}
-          {collapsed && (
+          {collapsed && !isMobile && (
             <motion.div
               key="dot"
               initial={{ opacity: 0 }}
@@ -78,18 +88,28 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
           )}
         </AnimatePresence>
 
-        {/* Collapse toggle */}
-        <button
-          onClick={onToggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="h-6 w-6 flex items-center justify-center rounded-[4px] text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors duration-150 flex-shrink-0"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronLeft className="h-3.5 w-3.5" />
-          )}
-        </button>
+        {/* Mobile: close button; Desktop: collapse toggle */}
+        {isMobile ? (
+          <button
+            onClick={onMobileClose}
+            aria-label="Close navigation"
+            className="h-11 w-11 flex items-center justify-center rounded-[4px] text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors duration-150 flex-shrink-0"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            onClick={onToggle}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="h-6 w-6 flex items-center justify-center rounded-[4px] text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors duration-150 flex-shrink-0"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronLeft className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Nav items */}
@@ -105,9 +125,11 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
               <li key={href}>
                 <Link
                   href={href}
-                  title={collapsed ? label : undefined}
+                  title={collapsed && !isMobile ? label : undefined}
+                  onClick={isMobile ? onMobileClose : undefined}
                   className={cn(
-                    "flex items-center gap-3 h-9 px-2 rounded-[4px] transition-colors duration-150 relative group",
+                    // min-h-11 (44px) touch target on all breakpoints for accessibility
+                    "flex items-center gap-3 min-h-11 md:min-h-0 md:h-9 px-2 rounded-[4px] transition-colors duration-150 relative group",
                     isActive
                       ? "bg-zinc-800 text-zinc-100"
                       : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60"
@@ -125,7 +147,8 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
                     strokeWidth={1.5}
                   />
                   <AnimatePresence mode="wait">
-                    {!collapsed && (
+                    {/* Desktop: respect collapsed; Mobile: always show label */}
+                    {(!collapsed || isMobile) && (
                       <motion.span
                         key={label}
                         initial={{ opacity: 0 }}
@@ -146,12 +169,13 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
       </nav>
 
       {/* Bottom section */}
-      <div className="p-2 border-t border-zinc-800 flex-shrink-0">
+      <div className="p-2 border-t border-zinc-800 flex-shrink-0 pb-safe">
         <Link
           href="/dashboard/settings"
-          title={collapsed ? "Settings" : undefined}
+          title={collapsed && !isMobile ? "Settings" : undefined}
+          onClick={isMobile ? onMobileClose : undefined}
           className={cn(
-            "flex items-center gap-3 h-9 px-2 rounded-[4px] transition-colors duration-150 relative group",
+            "flex items-center gap-3 min-h-11 md:min-h-0 md:h-9 px-2 rounded-[4px] transition-colors duration-150 relative group",
             pathname.startsWith("/dashboard/settings")
               ? "bg-zinc-800 text-zinc-100"
               : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60"
@@ -169,7 +193,7 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
             strokeWidth={1.5}
           />
           <AnimatePresence mode="wait">
-            {!collapsed && (
+            {(!collapsed || isMobile) && (
               <motion.span
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -183,7 +207,47 @@ export function Sidebar({ collapsed, onToggle, userEmail }: SidebarProps) {
           </AnimatePresence>
         </Link>
       </div>
+    </>
+  )
+}
 
-    </motion.aside>
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+export function Sidebar({ collapsed, onToggle, mobileOpen = false, onMobileClose }: SidebarProps) {
+  return (
+    <>
+      {/* ── Desktop rail: inline flex column, hidden on mobile ──────────── */}
+      <motion.aside
+        animate={{ width: collapsed ? 56 : 240 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="hidden md:flex flex-shrink-0 flex-col bg-zinc-900 border-r border-zinc-800 overflow-hidden relative z-10"
+        style={{ willChange: "width" }}
+      >
+        <NavContent collapsed={collapsed} onToggle={onToggle} isMobile={false} />
+      </motion.aside>
+
+      {/* ── Mobile drawer: fixed, slides in from left ────────────────────── */}
+      {/*
+        Uses CSS transition instead of Framer Motion so it respects
+        prefers-reduced-motion: reduce via the global CSS we added.
+        w-64 (256px) fits comfortably on 320px viewport + 56px leftover.
+      */}
+      <aside
+        className={cn(
+          "md:hidden fixed inset-y-0 left-0 z-40 flex flex-col w-64 bg-zinc-900 border-r border-zinc-800 overflow-hidden",
+          "transform transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "motion-reduce:transition-none",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+        aria-hidden={!mobileOpen}
+      >
+        <NavContent
+          collapsed={false}
+          onToggle={onToggle}
+          onMobileClose={onMobileClose}
+          isMobile={true}
+        />
+      </aside>
+    </>
   )
 }

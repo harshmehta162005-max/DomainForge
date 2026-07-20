@@ -16,7 +16,7 @@ function StatCard({ label, value, delta, icon, valueColor, suffix }: StatCardPro
   const isNeutral = delta === undefined || delta === 0
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] px-4 py-4 flex flex-col gap-3">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] px-3 sm:px-4 py-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
           {label}
@@ -24,13 +24,21 @@ function StatCard({ label, value, delta, icon, valueColor, suffix }: StatCardPro
         <span className="text-zinc-600">{icon}</span>
       </div>
       <div className="flex items-end justify-between">
-        <span className={cn("text-2xl font-semibold tabular-nums", valueColor ?? "text-zinc-100")}>
+        {/*
+          text-xl on mobile prevents the value overflowing a ~148px card at 320px.
+          sm:text-2xl restores the design-spec size on tablet+.
+        */}
+        <span className={cn("text-xl sm:text-2xl font-semibold tabular-nums", valueColor ?? "text-zinc-100")}>
           {value}{suffix}
         </span>
+        {/*
+          Delta text is hidden on mobile: "+X this week" wraps at narrow card widths
+          and isn't worth the visual noise. Shown sm+ where cards are wider.
+        */}
         {delta !== undefined && !isNeutral && (
           <span
             className={cn(
-              "flex items-center gap-0.5 text-xs font-medium",
+              "hidden sm:flex items-center gap-0.5 text-xs font-medium",
               isPositive ? "text-green-400" : "text-red-400"
             )}
           >

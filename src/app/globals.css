@@ -123,3 +123,19 @@ body {
 .animate-slide-in {
   animation: slide-in 180ms ease-out forwards;
 }
+
+/* ─── Safe-area helpers (iOS notch / home indicator) ─────────────────────── */
+/* Use .pb-safe on fixed footers / bottom bars */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe { padding-top:    env(safe-area-inset-top,    0px); }
+
+/* ─── Motion-reduce: kill non-essential animations ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-in,
+  .animate-skeleton {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

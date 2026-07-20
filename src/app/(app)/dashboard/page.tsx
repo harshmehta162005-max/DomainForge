@@ -149,16 +149,17 @@ export default async function DashboardPage() {
   const displayName = settings?.display_name || defaultName
 
   return (
-    <div className="px-6 py-8 max-w-[1400px] mx-auto space-y-6">
+    <div className="px-3 sm:px-6 py-6 sm:py-8 max-w-[1400px] mx-auto space-y-6">
       {/* ── Greeting ─────────────────────────────────────────────────────── */}
-      <div className="flex items-end justify-between">
+      {/* flex-col on mobile so date doesn't crowd the greeting at 320px */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1 sm:gap-0">
         <div>
           <h1 className="text-xl font-semibold text-zinc-100">
             {getGreeting()}, {displayName}
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5">{formatDate()}</p>
         </div>
-        {/* Progress indicator for realtime check */}
+        {/* Realtime indicator — hidden on mobile, shown sm+ */}
         <div className="hidden sm:flex items-center gap-2 text-xs text-zinc-600">
           <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
           Realtime active

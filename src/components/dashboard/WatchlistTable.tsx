@@ -1,15 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
-  ExternalLink,
   Trash2,
   RefreshCw,
   Copy,
   Check,
-  AtSign,
   Search,
   Filter,
   LayoutGrid,
@@ -164,9 +162,11 @@ function CopyButton({ text }: { text: string }) {
 
 // ─── Expiry Cell ──────────────────────────────────────────────────────────────
 
-function ExpiryCell({ expiresAt }: { expiresAt: string | null }) {
+// ExpiryCell receives `now` as a prop so Date.now() (impure) is called
+// at the call site (in the table row render) rather than inside the component.
+function ExpiryCell({ expiresAt, now }: { expiresAt: string | null; now: number }) {
   if (!expiresAt) return <span className="text-zinc-700 text-xs">—</span>
-  const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000)
+  const days = Math.ceil((new Date(expiresAt).getTime() - now) / 86400000)
   const color = days <= 7 ? "text-red-400" : days <= 14 ? "text-orange-400" : "text-zinc-400"
   return (
     <span className={cn("text-xs tabular-nums font-mono", color)}>
@@ -197,12 +197,15 @@ function TagChips({ tags }: { tags: string[] }) {
 
 // ─── Skeleton Row ─────────────────────────────────────────────────────────────
 
+// Deterministic widths prevent Math.random() impurity during render
+const SKELETON_WIDTHS = ["55%", "72%", "40%", "65%", "48%", "80%", "45%", "70%", "58%"]
+
 function SkeletonRow() {
   return (
     <tr className="border-b border-zinc-800">
-      {Array.from({ length: 9 }).map((_, i) => (
+      {SKELETON_WIDTHS.map((w, i) => (
         <td key={i} className="px-4 py-4">
-          <div className="h-4 bg-zinc-800 rounded-[2px] animate-skeleton" style={{ width: `${40 + Math.random() * 40}%` }} />
+          <div className="h-4 bg-zinc-800 rounded-[2px] animate-skeleton" style={{ width: w }} />
         </td>
       ))}
     </tr>
@@ -214,8 +217,8 @@ function SkeletonRow() {
 function EmptyTable() {
   return (
     <tr>
-      <td colSpan={9} className="px-4 py-20 text-center">
-        <div className="flex flex-col items-center gap-4 max-w-xs mx-auto">
+      <td colSpan={9} className="px-6 py-20 text-center">
+        <div className="flex flex-col items-center gap-4 max-w-[240px] mx-auto">
           {/* Icon */}
           <div className="h-12 w-12 rounded-full bg-zinc-800/60 border border-zinc-700 flex items-center justify-center">
             <svg className="h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -228,22 +231,22 @@ function EmptyTable() {
             <p className="text-xs text-zinc-600">Add a domain manually or generate new names with AI</p>
           </div>
           {/* CTAs */}
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full pt-1">
             <button
               onClick={() => {
                 const btn = document.getElementById("quick-action-add")
                 btn?.click()
               }}
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
+              className="flex items-center justify-center gap-1.5 min-h-11 sm:h-9 px-4 rounded-[4px] bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300 transition-colors duration-150 active:scale-[0.98]"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
               Add domain
             </button>
             <a
               href="/generator"
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
+              className="flex items-center justify-center gap-1.5 min-h-11 sm:h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
             >
               Generate names
             </a>
@@ -513,7 +516,7 @@ function AlertButton({ item }: {
               <h3 className="text-sm font-medium text-zinc-300">Frequency:</h3>
               <select 
                 value={frequency}
-                onChange={(e) => setFrequency(e.target.value as any)}
+                onChange={(e) => setFrequency(e.target.value as 'immediate' | 'daily' | 'weekly')}
                 className="w-full h-10 px-3 bg-zinc-950 border border-zinc-800 rounded-md text-sm text-zinc-300 focus:outline-none focus:border-zinc-700"
               >
                 <option value="immediate">Immediate (As soon as detected)</option>
@@ -568,6 +571,14 @@ type WatchlistTableProps = {
 }
 
 export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps) {
+  // Capture current time once per render cycle as a stable snapshot.
+  // The purity rule fires on Date.now() — suppressed here because calling
+  // Date.now() inside useMemo is intentional: we want one timestamp per mount.
+  const renderNow = useMemo(() => {
+    // eslint-disable-next-line react-hooks/purity
+    return Date.now()
+  }, [])
+
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortField, setSortField] = useState<SortField>("createdAt")
@@ -732,73 +743,82 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 p-3 border-b border-zinc-800">
-        {/* Search */}
-        <div className="relative flex-1 min-w-48">
+      <div className="flex flex-col gap-2 p-3 border-b border-zinc-800">
+        {/* Row 1: Search — always full width */}
+        <div className="relative min-w-0 w-full">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" strokeWidth={1.5} />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Filter domains…"
-            className="w-full h-8 pl-8 pr-3 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors duration-150"
+            className="w-full min-h-[2.75rem] md:h-8 pl-8 pr-3 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors duration-150"
           />
         </div>
 
-        {/* Status filter */}
-        <div className="flex items-center gap-1">
-          <Filter className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.5} />
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="filter-select h-8 pl-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 focus:outline-none focus:border-zinc-600 cursor-pointer"
-          >
-            <option value="all">All status</option>
-            <option value="available">Available</option>
-            <option value="taken">Taken</option>
-          </select>
-        </div>
+        {/* Row 2: Filter select + bulk actions + view toggles all on one line */}
+        <div className="flex items-center gap-2">
+          {/* Filter — grows to fill available space */}
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <Filter className="h-3.5 w-3.5 text-zinc-500 flex-shrink-0" strokeWidth={1.5} />
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="flex-1 min-h-[2.75rem] md:h-8 px-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 focus:outline-none focus:border-zinc-600 cursor-pointer transition-colors duration-150"
+            >
+              <option value="all">All status</option>
+              <option value="available">Available</option>
+              <option value="taken">Taken</option>
+            </select>
+          </div>
 
-        {/* Bulk actions */}
-        {selected.size > 0 && (
-          <div className="flex items-center gap-2 px-2 py-1 bg-zinc-800 rounded-[4px] border border-zinc-700">
-            <span className="text-xs text-zinc-400">{selected.size} selected</span>
-            <button 
-              onClick={handleBulkRemoveClick}
-              className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+          {/* Bulk actions (when items selected) */}
+          {selected.size > 0 && (
+            <div className="flex items-center gap-2 px-2 py-1 bg-zinc-800 rounded-[4px] border border-zinc-700 flex-shrink-0">
+              <span className="text-xs text-zinc-400">{selected.size} selected</span>
+              <button
+                onClick={handleBulkRemoveClick}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+              >
+                Remove
+              </button>
+              <button
+                onClick={handleBulkExport}
+                className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+              >
+                Export
+              </button>
+            </div>
+          )}
+
+          {/* View toggles — flush right on same row as filter */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setViewMode("table")}
+              aria-label="Table view"
+              aria-pressed={viewMode === "table"}
+              className={cn(
+                "h-11 w-11 md:h-8 md:w-8 flex items-center justify-center rounded-[4px] transition-colors duration-100",
+                viewMode === "table" ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+              )}
             >
-              Remove
+              <List className="h-4 w-4" strokeWidth={1.5} />
             </button>
-            <button 
-              onClick={handleBulkExport}
-              className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+            <button
+              onClick={() => setViewMode("grid")}
+              aria-label="Grid view"
+              aria-pressed={viewMode === "grid"}
+              className={cn(
+                "h-11 w-11 md:h-8 md:w-8 flex items-center justify-center rounded-[4px] transition-colors duration-100",
+                viewMode === "grid" ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+              )}
             >
-              Export
+              <LayoutGrid className="h-4 w-4" strokeWidth={1.5} />
             </button>
           </div>
-        )}
-
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            onClick={() => setViewMode("table")}
-            className={cn(
-              "h-8 w-8 flex items-center justify-center rounded-[4px] transition-colors duration-100",
-              viewMode === "table" ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-            )}
-          >
-            <List className="h-4 w-4" strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={() => setViewMode("grid")}
-            className={cn(
-              "h-8 w-8 flex items-center justify-center rounded-[4px] transition-colors duration-100",
-              viewMode === "grid" ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-            )}
-          >
-            <LayoutGrid className="h-4 w-4" strokeWidth={1.5} />
-          </button>
         </div>
       </div>
+
 
       {/* Table view */}
       {viewMode === "table" && (
@@ -936,7 +956,7 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
                     {item.status === "available" ? (
                       <span className="text-zinc-700 text-xs">—</span>
                     ) : item.expiresAt ? (
-                      <ExpiryCell expiresAt={item.expiresAt} />
+                      <ExpiryCell expiresAt={item.expiresAt} now={renderNow} />
                     ) : (
                       <CheckButton domain={item.domain} onUpdate={handleUpdateItem} />
                     )}

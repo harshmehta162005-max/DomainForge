@@ -40,6 +40,8 @@ export function NotificationBell() {
   }
 
   useEffect(() => {
+    // fetchNotifications is async; setState calls happen in a microtask, not synchronously
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotifications()
     const interval = setInterval(fetchNotifications, 60000)
     return () => clearInterval(interval)
@@ -47,6 +49,8 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (isOpen) {
+      // fetchNotifications is async; setState calls happen in a microtask, not synchronously
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchNotifications() // fetch immediately when user opens the bell
     } else {
       setTimeout(() => setIsExpanded(false), 200)
@@ -107,7 +111,9 @@ export function NotificationBell() {
       {isOpen && (
         <div 
           className={cn(
-            "absolute right-0 top-full mt-2 z-50 w-80 p-0 bg-zinc-950 border border-zinc-800 rounded-lg shadow-xl overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95 origin-top-right",
+            // w-[min(20rem,...)] caps at 20rem but shrinks to viewport-2rem on small phones.
+            // right-0 anchors it to the bell; on 320px the left edge won't bleed.
+            "absolute right-0 top-full mt-2 z-50 w-[min(20rem,calc(100vw-2rem))] p-0 bg-zinc-950 border border-zinc-800 rounded-lg shadow-xl overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95 origin-top-right",
             isExpanded ? "max-h-[500px]" : "max-h-[400px]"
           )}
         >

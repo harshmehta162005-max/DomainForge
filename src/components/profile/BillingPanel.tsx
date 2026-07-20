@@ -78,18 +78,18 @@ function DeleteModal({
             shortlists, history, and all preferences.
           </p>
         </div>
-        <div className="px-6 py-4 bg-zinc-950/50 border-t border-zinc-800 flex items-center justify-end gap-3">
+        <div className="px-6 py-4 bg-zinc-950/50 border-t border-zinc-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="h-9 px-4 rounded-[4px] text-sm font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            className="min-h-11 sm:h-9 px-4 rounded-[4px] text-sm font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isDeleting}
-            className="h-9 px-4 rounded-[4px] bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="min-h-11 sm:h-9 px-4 rounded-[4px] bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isDeleting ? (
               <>
@@ -225,8 +225,13 @@ export function BillingPanel({ profile }: BillingPanelProps) {
         <div className="px-5 py-3 border-b border-red-900/30">
           <h2 className="text-sm font-medium text-red-400">Danger Zone</h2>
         </div>
-        <div className="px-5 py-5 flex items-center justify-between">
-          <div>
+        {/*
+          On mobile: stacks vertically (flex-col) so the button never fights
+          the description text for horizontal space.
+          On sm+: reverts to the side-by-side justify-between layout.
+        */}
+        <div className="px-5 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="min-w-0">
             <p className="text-sm text-zinc-200">Delete account</p>
             <p className="text-xs text-zinc-600 mt-0.5">
               Permanently delete your account and all associated data
@@ -234,7 +239,7 @@ export function BillingPanel({ profile }: BillingPanelProps) {
           </div>
           <button
             onClick={() => setDeleteOpen(true)}
-            className="inline-flex items-center gap-2 h-8 px-3 rounded-[4px] bg-zinc-950 border border-red-900 text-sm text-red-500 hover:text-red-400 hover:bg-red-950/30 transition-colors duration-150"
+            className="inline-flex items-center justify-center gap-2 min-h-11 sm:h-8 w-full sm:w-auto px-4 sm:px-3 rounded-[4px] bg-zinc-950 border border-red-900 text-sm text-red-500 hover:text-red-400 hover:bg-red-950/30 transition-colors duration-150 flex-shrink-0"
           >
             <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
             Delete account

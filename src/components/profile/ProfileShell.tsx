@@ -39,15 +39,15 @@ export function ProfileShell({ children, activeTab }: ProfileShellProps) {
   )
 
   return (
-    <div className="px-6 py-8 max-w-[900px] mx-auto space-y-6">
+    <div className="px-3 sm:px-6 py-8 max-w-[900px] mx-auto space-y-6">
       {/* Page heading */}
       <div>
         <h1 className="text-xl font-semibold text-zinc-100">Profile</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Manage your identity, preferences, and account</p>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 border-b border-zinc-800 overflow-x-auto scrollbar-none">
+      {/* Tab bar — grid-cols-4 so all tabs share width equally, no scroll ever */}
+      <div className="grid grid-cols-4 border-b border-zinc-800">
         {TABS.map(({ id, label, Icon }) => {
           const isActive = activeTab === id
           return (
@@ -55,14 +55,15 @@ export function ProfileShell({ children, activeTab }: ProfileShellProps) {
               key={id}
               onClick={() => goToTab(id)}
               className={cn(
-                "flex items-center gap-2 h-9 px-3 text-sm whitespace-nowrap border-b-[2px] transition-all duration-150 relative -mb-px",
+                "flex items-center justify-center gap-1.5 h-10 text-sm border-b-[2px] transition-all duration-150 relative -mb-px px-1",
                 isActive
                   ? "border-cyan-400 text-zinc-100"
                   : "border-transparent text-zinc-500 hover:text-zinc-300 hover:border-zinc-600"
               )}
             >
-              <Icon className={cn("h-3.5 w-3.5", isActive ? "text-cyan-400" : "text-zinc-600")} strokeWidth={1.5} />
-              {label}
+              <Icon className={cn("h-3.5 w-3.5 flex-shrink-0", isActive ? "text-cyan-400" : "text-zinc-600")} strokeWidth={1.5} />
+              {/* Hide label text on very small screens (< ~360px) to keep tabs from wrapping */}
+              <span className="hidden min-[320px]:inline truncate text-xs sm:text-sm">{label}</span>
             </button>
           )
         })}

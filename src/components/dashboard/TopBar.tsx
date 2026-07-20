@@ -1,17 +1,44 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Search, Bell, LogOut, Settings, X, UserCircle2 } from "lucide-react"
+import { Search, LogOut, Settings, X, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { NotificationBell } from "@/components/layout/NotificationBell"
 import { SignOutDialog } from "@/components/ui/SignOutDialog"
+
+// ─── Avatar Icon (extracted at module level to avoid react-hooks/static-components) ──
+
+interface AvatarIconProps {
+  avatarUrl?: string | null
+  initial: string
+  sizeClass?: string
+}
+
+function AvatarIcon({ avatarUrl, initial, sizeClass = "h-8 w-8" }: AvatarIconProps) {
+  if (avatarUrl) {
+    return (
+      // explicit w/h on the container prevents CLS (image fills it)
+      <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-zinc-700/50", sizeClass)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+      </div>
+    )
+  }
+  return (
+    <div className={cn("rounded-full bg-zinc-800 border border-zinc-700/50 text-zinc-300 flex items-center justify-center font-medium flex-shrink-0", sizeClass)}>
+      {/* text-[0.85em]: relative to parent font-size, no config token equivalent */}
+      <span className="text-[0.85em]">{initial}</span>
+    </div>
+  )
+}
 
 interface TopBarProps {
   userEmail?: string | null
   userDisplayName?: string | null
   userAvatarUrl?: string | null
+  /** Called when the hamburger button is tapped on mobile */
+  onHamburgerClick?: () => void
 }
 
 // ─── Command Palette ──────────────────────────────────────────────────────────
@@ -51,15 +78,15 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-32"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
       onClick={onClose}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-zinc-950/80" />
 
-      {/* Panel */}
+      {/* Panel — w-full with max-w so it never bleeds on 320px */}
       <div
-        className="relative w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-[6px] overflow-hidden animate-fade-in"
+        className="relative w-[calc(100%-2rem)] max-w-md bg-zinc-900 border border-zinc-700 rounded-[6px] overflow-hidden animate-fade-in"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 px-3 border-b border-zinc-800">
@@ -71,7 +98,11 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             placeholder="Search commands…"
             className="flex-1 h-10 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-600 outline-none"
           />
-          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-400 transition-colors">
+          <button
+            onClick={onClose}
+            aria-label="Close command palette"
+            className="h-8 w-8 flex items-center justify-center text-zinc-600 hover:text-zinc-400 transition-colors"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -83,7 +114,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             <li key={cmd.id}>
               <button
                 onClick={() => handleSelect(cmd.href)}
-                className="w-full flex items-center justify-between gap-3 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors duration-100 text-left"
+                className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors duration-100 text-left"
               >
                 <span>{cmd.label}</span>
                 <kbd className="text-xs font-mono text-zinc-600 bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded-[2px]">
@@ -100,11 +131,11 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
 
 // ─── TopBar ───────────────────────────────────────────────────────────────────
 
-export function TopBar({ userEmail, userDisplayName, userAvatarUrl }: TopBarProps) {
+export function TopBar({ userEmail, userDisplayName, userAvatarUrl, onHamburgerClick }: TopBarProps) {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const router = useRouter()
-  
+
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -112,7 +143,7 @@ export function TopBar({ userEmail, userDisplayName, userAvatarUrl }: TopBarProp
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
-        menuRef.current && 
+        menuRef.current &&
         !menuRef.current.contains(event.target as Node) &&
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
@@ -143,67 +174,81 @@ export function TopBar({ userEmail, userDisplayName, userAvatarUrl }: TopBarProp
     setSignOutOpen(true)
   }
 
-  const initial = userDisplayName 
-    ? userDisplayName.charAt(0).toUpperCase() 
+  const initial = userDisplayName
+    ? userDisplayName.charAt(0).toUpperCase()
     : (userEmail ? userEmail.charAt(0).toUpperCase() : "?")
-
-  const AvatarIcon = ({ sizeClass = "h-8 w-8" }: { sizeClass?: string }) => {
-    if (userAvatarUrl) {
-      return (
-        <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-zinc-700/50", sizeClass)}>
-          <img src={userAvatarUrl} alt="Profile" className="h-full w-full object-cover" />
-        </div>
-      )
-    }
-    return (
-      <div className={cn("rounded-full bg-zinc-800 border border-zinc-700/50 text-zinc-300 flex items-center justify-center font-medium flex-shrink-0", sizeClass)}>
-        <span style={{ fontSize: '0.85em' }}>{initial}</span>
-      </div>
-    )
-  }
 
   return (
     <>
-      <header className="h-14 bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800 flex items-center justify-between px-4 flex-shrink-0 sticky top-0 z-30">
-        {/* Search trigger */}
-        <button
-          onClick={() => setPaletteOpen(true)}
-          id="global-search-trigger"
-          className="flex items-center gap-2 h-8 px-3 rounded-[4px] bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 transition-colors duration-150 w-52"
-        >
-          <Search className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
-          <span className="text-xs flex-1 text-left">Search commands…</span>
-          <kbd className="text-xs font-mono bg-zinc-800 border border-zinc-700 px-1 rounded-[2px] text-zinc-600">
-            ⌘K
-          </kbd>
-        </button>
+      <header className="h-14 pt-safe bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800 flex items-center justify-between px-3 sm:px-4 flex-shrink-0 sticky top-0 z-30">
+        {/* ── Left: hamburger (mobile) + search (tablet+) ─────────────── */}
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Hamburger — visible only on mobile (< md) */}
+          <button
+            onClick={onHamburgerClick}
+            aria-label="Open navigation menu"
+            className="md:hidden h-11 w-11 flex items-center justify-center rounded-[4px] text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors duration-150 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
 
-        {/* Right side */}
-        <div className="flex items-center gap-1">
+          {/*
+            Search trigger:
+            - Mobile (< sm): icon-only button (w-11) to save horizontal space
+            - sm+: full pill with label and ⌘K kbd hint, max-w-[208px]
+          */}
+          <button
+            onClick={() => setPaletteOpen(true)}
+            id="global-search-trigger"
+            aria-label="Search commands (⌘K)"
+            className={cn(
+              "flex items-center gap-2 h-8 rounded-[4px] bg-zinc-900 border border-zinc-800",
+              "text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 transition-colors duration-150",
+              // Mobile: icon-only square; sm+: expand to show label
+              "w-8 sm:w-full sm:max-w-[208px] sm:px-3 justify-center sm:justify-start"
+            )}
+          >
+            <Search className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+            {/* Label + shortcut: hidden on < sm to keep the bar clean */}
+            <span className="hidden sm:flex flex-1 items-center justify-between min-w-0">
+              <span className="text-xs truncate">Search commands…</span>
+              <kbd className="text-xs font-mono bg-zinc-800 border border-zinc-700 px-1 rounded-[2px] text-zinc-600 flex-shrink-0">
+                ⌘K
+              </kbd>
+            </span>
+          </button>
+        </div>
+
+        {/* ── Right: notifications + user avatar ──────────────────────── */}
+        <div className="flex items-center gap-1 flex-shrink-0">
           {/* Notifications */}
           <NotificationBell />
 
-          {/* User avatar */}
+          {/* User avatar + dropdown */}
           <div className="relative">
             <button
               ref={buttonRef}
               id="user-menu-toggle"
               onClick={() => setUserMenuOpen(prev => !prev)}
+              aria-label="Open user menu"
+              aria-expanded={userMenuOpen}
               className={cn(
-                "h-8 w-8 flex items-center justify-center rounded-full transition-all duration-150 ring-offset-zinc-950",
+                // h-11 w-11 on mobile for touch target; h-8 w-8 on desktop for density
+                "h-11 w-11 md:h-8 md:w-8 flex items-center justify-center rounded-full transition-all duration-150 ring-offset-zinc-950",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2",
                 userMenuOpen
                   ? "ring-2 ring-cyan-500/50"
                   : "hover:ring-2 hover:ring-zinc-700"
               )}
             >
-              <AvatarIcon sizeClass="h-7 w-7" />
+              <AvatarIcon avatarUrl={userAvatarUrl} initial={initial} sizeClass="h-7 w-7" />
             </button>
 
             {/* Dropdown */}
             {userMenuOpen && (
               <div
                 ref={menuRef}
-                className="absolute right-0 top-10 w-52 bg-zinc-900 border border-zinc-700 rounded-[6px] py-1 shadow-xl z-40 animate-fade-in"
+                className="absolute right-0 top-12 w-52 bg-zinc-900 border border-zinc-700 rounded-[6px] py-1 shadow-xl z-40 animate-fade-in"
               >
                 {userDisplayName && (
                   <div className="px-3 py-2 border-b border-zinc-800 mb-1">
@@ -212,21 +257,21 @@ export function TopBar({ userEmail, userDisplayName, userAvatarUrl }: TopBarProp
                 )}
                 <button
                   onClick={() => { setUserMenuOpen(false); router.push("/dashboard/profile") }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors duration-100"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors duration-100"
                 >
-                  <AvatarIcon sizeClass="h-4 w-4" />
+                  <AvatarIcon avatarUrl={userAvatarUrl} initial={initial} sizeClass="h-4 w-4" />
                   Profile
                 </button>
                 <button
                   onClick={() => { setUserMenuOpen(false); router.push("/dashboard/settings") }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors duration-100"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors duration-100"
                 >
                   <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
                   Settings
                 </button>
                 <button
                   onClick={handleSignOutClick}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-zinc-800 transition-colors duration-100"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-zinc-800 transition-colors duration-100"
                 >
                   <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
                   Sign out
@@ -239,7 +284,7 @@ export function TopBar({ userEmail, userDisplayName, userAvatarUrl }: TopBarProp
 
       {/* Command palette portal */}
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
-      
+
       <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
     </>
   )

@@ -39,7 +39,9 @@ function LineChart({ data }: { data: AvailabilityTrend[] }) {
     vals.map((v, i) => `${(i / (n - 1)) * w},${h - (v / maxAll) * h}`).join(" ")
 
   return (
-    <div className="mt-3 overflow-hidden">
+    // overflow-hidden removed: was clipping x-axis labels at narrow widths.
+    // The SVG handles its own bounds via viewBox + preserveAspectRatio.
+    <div className="mt-3">
       <div className="flex items-center gap-3 mb-2">
         <div className="flex items-center gap-1">
           <div className="h-1.5 w-4 bg-green-400 rounded-full" />
@@ -110,7 +112,8 @@ export function InsightsPanel({ trend, scoreDistribution }: InsightsPanelProps) 
         <h2 className="text-sm font-medium text-zinc-200">Insights</h2>
       </div>
 
-      <div className="px-4 py-4 space-y-6">
+      {/* Availability trend + Score distribution side-by-side on md+, stacked on mobile */}
+      <div className="px-4 py-4 grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Availability trend */}
         <div>
           <div className="flex items-center justify-between">
@@ -123,9 +126,6 @@ export function InsightsPanel({ trend, scoreDistribution }: InsightsPanelProps) 
           </div>
           <LineChart data={trend} />
         </div>
-
-        {/* Divider */}
-        <div className="border-t border-zinc-800" />
 
         {/* Score distribution */}
         <div>
