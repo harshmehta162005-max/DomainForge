@@ -42,7 +42,7 @@ export default async function ShortlistPage() {
 
   return (
     <div className="px-6 py-8 max-w-[1400px] mx-auto">
-      <div className="mb-8 flex items-end justify-between">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <Link
             href="/dashboard"
@@ -56,7 +56,7 @@ export default async function ShortlistPage() {
             Your top picks — domains you&apos;re seriously considering
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <span className="text-xs text-zinc-600 flex items-center gap-1">
             <Bookmark className="h-3 w-3" strokeWidth={1.5} />
             {items.length} saved
@@ -88,7 +88,7 @@ export default async function ShortlistPage() {
           {items.map(item => (
             <div
               key={item.id as string}
-              className="bg-zinc-900 border border-zinc-700 rounded-[4px] p-4 hover:border-cyan-400/40 hover:bg-zinc-800/30 transition-all duration-150 group"
+              className="bg-zinc-900 border border-zinc-700 rounded-[4px] p-4 hover:border-cyan-400/40 hover:bg-zinc-800/30 transition-all duration-150 group flex flex-col h-full"
             >
               <LogoMockup domain={item.domain as string} />
               
@@ -109,8 +109,8 @@ export default async function ShortlistPage() {
                 })}
               </div>
 
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                {item.status === "available" && (
+              <div className="flex flex-wrap items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150 mt-auto pt-4 border-t border-zinc-800/60">
+                {item.status === "available" ? (
                   <a
                     href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
                     target="_blank"
@@ -120,16 +120,17 @@ export default async function ShortlistPage() {
                     <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
                     Register
                   </a>
+                ) : (
+                  <a
+                    href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 h-7 px-2.5 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
+                  >
+                    <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+                    Check
+                  </a>
                 )}
-                <a
-                  href={`https://www.namecheap.com/domains/registration/results/?domain=${item.domain}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-[4px] bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
-                >
-                  <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-                  Check
-                </a>
                 
                 <div className="flex-1 flex justify-center">
                   <DownloadSvgButton domain={item.domain as string} />

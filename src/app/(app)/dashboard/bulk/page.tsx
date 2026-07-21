@@ -144,7 +144,7 @@ export default function BulkGeneratePage() {
   return (
     <div className="px-6 py-8 max-w-[1000px] mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <Link
             href="/dashboard"
@@ -159,13 +159,15 @@ export default function BulkGeneratePage() {
           </p>
         </div>
         {results.length > 0 && (
-          <button
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[4px] text-xs font-medium bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
-          >
-            <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
-            Export CSV
-          </button>
+          <div className="flex w-full sm:w-auto justify-end">
+            <button
+              onClick={handleExportCSV}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[4px] text-xs font-medium bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
+              Export CSV
+            </button>
+          </div>
         )}
       </div>
 
@@ -261,6 +263,40 @@ export default function BulkGeneratePage() {
           )}
 
           {error && <p className="text-xs text-red-400">{error}</p>}
+
+          {/* Mobile Clear Results Button */}
+          {results.length > 0 && (
+            <div className="sm:hidden pt-2">
+              <Dialog>
+                <DialogTrigger render={
+                  <button className="w-full h-10 text-sm px-3 py-1.5 bg-red-950/20 text-red-400 border border-red-900/50 rounded-[4px] hover:bg-red-950/40 flex items-center justify-center gap-1.5 transition-colors font-medium">
+                    <Trash2 className="h-4 w-4" strokeWidth={1.5} /> Clear Results
+                  </button>
+                } />
+                <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 sm:max-w-[425px]">
+                  <DialogTitle>Clear all results?</DialogTitle>
+                  <DialogDescription className="text-zinc-400">
+                    Are you sure you want to clear your current bulk check results? This will remove all checked domains.
+                  </DialogDescription>
+                  <DialogFooter className="bg-zinc-900 border-zinc-800 mt-2 sm:justify-end gap-2">
+                    <DialogClose render={
+                      <button className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors">
+                        Cancel
+                      </button>
+                    } />
+                    <DialogClose render={
+                      <button
+                        onClick={() => { setResults([]); setInput(""); setFilter("all"); }}
+                        className="px-4 py-2 text-sm font-medium bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-[4px] border border-red-900/50 transition-colors"
+                      >
+                        Yes, clear them
+                      </button>
+                    } />
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
         </div>
       </div>
 
@@ -290,34 +326,36 @@ export default function BulkGeneratePage() {
                   ))}
                 </div>
               </div>
-              <Dialog>
-                <DialogTrigger render={
-                  <button className="text-sm px-3 py-1.5 bg-red-950/20 text-red-400 border border-red-900/50 rounded-[4px] hover:bg-red-950/40 flex items-center gap-1.5 transition-colors font-medium">
-                    <Trash2 className="h-4 w-4" strokeWidth={1.5} /> Clear Results
-                  </button>
-                } />
-                <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 sm:max-w-[425px]">
-                  <DialogTitle>Clear all results?</DialogTitle>
-                  <DialogDescription className="text-zinc-400">
-                    Are you sure you want to clear your current bulk check results? This will remove all checked domains.
-                  </DialogDescription>
-                  <DialogFooter className="bg-zinc-900 border-zinc-800 mt-2 sm:justify-end gap-2">
-                    <DialogClose render={
-                      <button className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors">
-                        Cancel
-                      </button>
-                    } />
-                    <DialogClose render={
-                      <button
-                        onClick={() => { setResults([]); setInput(""); setFilter("all"); }}
-                        className="px-4 py-2 text-sm font-medium bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-[4px] border border-red-900/50 transition-colors"
-                      >
-                        Yes, clear them
-                      </button>
-                    } />
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <div className="hidden sm:block">
+                <Dialog>
+                  <DialogTrigger render={
+                    <button className="text-sm px-3 py-1.5 bg-red-950/20 text-red-400 border border-red-900/50 rounded-[4px] hover:bg-red-950/40 flex items-center gap-1.5 transition-colors font-medium">
+                      <Trash2 className="h-4 w-4" strokeWidth={1.5} /> Clear Results
+                    </button>
+                  } />
+                  <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 sm:max-w-[425px]">
+                    <DialogTitle>Clear all results?</DialogTitle>
+                    <DialogDescription className="text-zinc-400">
+                      Are you sure you want to clear your current bulk check results? This will remove all checked domains.
+                    </DialogDescription>
+                    <DialogFooter className="bg-zinc-900 border-zinc-800 mt-2 sm:justify-end gap-2">
+                      <DialogClose render={
+                        <button className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors">
+                          Cancel
+                        </button>
+                      } />
+                      <DialogClose render={
+                        <button
+                          onClick={() => { setResults([]); setInput(""); setFilter("all"); }}
+                          className="px-4 py-2 text-sm font-medium bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-[4px] border border-red-900/50 transition-colors"
+                        >
+                          Yes, clear them
+                        </button>
+                      } />
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
             {/* Available */}

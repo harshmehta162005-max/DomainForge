@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Clock, Globe, CheckCircle2, Trash2, Wand2, ArrowRightLeft, DollarSign, Filter } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Clock, Globe, CheckCircle2, Trash2, Wand2, ArrowRightLeft, DollarSign, Filter, ChevronUp, ChevronDown } from "lucide-react"
 
 function timeAgo(ts: string) {
   const diff = Date.now() - new Date(ts).getTime()
@@ -33,6 +33,75 @@ export type HistoryEvent = {
   note: string
 }
 
+const DURATION_FILTER_OPTIONS = [
+  { value: "all", label: "All time" },
+  { value: "1", label: "Last 24 hours" },
+  { value: "3", label: "Last 3 days" },
+  { value: "7", label: "Last 7 days" },
+  { value: "30", label: "Last 30 days" },
+] as const
+
+function DurationFilterDropdown({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onClickOutside)
+    return () => document.removeEventListener("mousedown", onClickOutside)
+  }, [])
+
+  const current = DURATION_FILTER_OPTIONS.find(o => o.value === value) ?? DURATION_FILTER_OPTIONS[0]
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0 flex items-center gap-1.5">
+      <Filter className="h-4 w-4 text-zinc-500 flex-shrink-0" strokeWidth={1.5} />
+
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 min-h-[2.75rem] md:h-9 px-4 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 hover:border-zinc-600 transition-colors duration-150 whitespace-nowrap"
+      >
+        {current.label}
+        {open
+          ? <ChevronUp className="h-4 w-4 text-zinc-500 flex-shrink-0" strokeWidth={1.5} />
+          : <ChevronDown className="h-4 w-4 text-zinc-500 flex-shrink-0" strokeWidth={1.5} />
+        }
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-900 border border-zinc-700 rounded-[4px] shadow-xl z-20 overflow-hidden py-1">
+          {DURATION_FILTER_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChange(opt.value)
+                setOpen(false)
+              }}
+              className={`w-full text-left px-3 py-2.5 md:py-2 text-sm transition-colors ${
+                opt.value === value
+                  ? "text-cyan-400 bg-zinc-800/60"
+                  : "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function HistoryList({ initialEvents }: { initialEvents: HistoryEvent[] }) {
   const [duration, setDuration] = useState("all")
 
@@ -45,25 +114,12 @@ export function HistoryList({ initialEvents }: { initialEvents: HistoryEvent[] }
 
   return (
     <div className="space-y-6 mt-6">
-      <div className="flex items-center justify-end gap-4 border-b border-zinc-800 pb-4">
+      <div className="flex items-center justify-between sm:justify-end gap-4 border-b border-zinc-800 pb-4">
         <span className="text-xs text-zinc-600 flex items-center gap-1">
           <Clock className="h-3 w-3" strokeWidth={1.5} />
           {filteredEvents.length} events
         </span>
-        <div className="flex items-center gap-1">
-          <Filter className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.5} />
-          <select
-            value={duration}
-            onChange={e => setDuration(e.target.value)}
-            className="filter-select h-8 pl-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 focus:outline-none focus:border-zinc-600 cursor-pointer"
-          >
-            <option value="all">All time</option>
-            <option value="1">Last 24 hours</option>
-            <option value="3">Last 3 days</option>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-          </select>
-        </div>
+        <DurationFilterDropdown value={duration} onChange={setDuration} />
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
