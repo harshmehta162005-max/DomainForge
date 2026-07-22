@@ -447,6 +447,74 @@ function CheckButton({ domain, onUpdate }: {
   )
 }
 
+// ─── Custom Frequency Dropdown ────────────────────────────────────────────────
+
+const FREQUENCY_OPTIONS = [
+  { value: "immediate", label: "Immediate (As soon as detected)" },
+  { value: "daily", label: "Daily Digest Max (Once a day)" },
+  { value: "weekly", label: "Weekly Digest Max (Once a week)" },
+] as const
+
+function FrequencyDropdown({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onClickOutside)
+    return () => document.removeEventListener("mousedown", onClickOutside)
+  }, [])
+
+  const current = FREQUENCY_OPTIONS.find(o => o.value === value) ?? FREQUENCY_OPTIONS[0]
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-between w-full h-10 px-3 bg-zinc-950 border border-zinc-800 rounded-md text-sm text-zinc-300 hover:border-zinc-700 transition-colors duration-150"
+      >
+        <span>{current.label}</span>
+        {open
+          ? <ChevronUp className="h-4 w-4 text-zinc-500 flex-shrink-0" strokeWidth={1.5} />
+          : <ChevronDown className="h-4 w-4 text-zinc-500 flex-shrink-0" strokeWidth={1.5} />
+        }
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-full bg-zinc-900 border border-zinc-700 rounded-[4px] shadow-xl z-50 overflow-hidden py-1">
+          {FREQUENCY_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChange(opt.value)
+                setOpen(false)
+              }}
+              className={cn(
+                "w-full text-left px-3 py-2 text-sm transition-colors",
+                opt.value === value
+                  ? "text-cyan-400 bg-zinc-800/60"
+                  : "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AlertButton({ item }: {
   item: WatchlistItem
 }) {
@@ -586,15 +654,10 @@ function AlertButton({ item }: {
             </div>
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-zinc-300">Frequency:</h3>
-              <select
+              <FrequencyDropdown
                 value={frequency}
-                onChange={(e) => setFrequency(e.target.value as 'immediate' | 'daily' | 'weekly')}
-                className="w-full h-10 px-3 bg-zinc-950 border border-zinc-800 rounded-md text-sm text-zinc-300 focus:outline-none focus:border-zinc-700"
-              >
-                <option value="immediate">Immediate (As soon as detected)</option>
-                <option value="daily">Daily Digest Max (Once a day)</option>
-                <option value="weekly">Weekly Digest Max (Once a week)</option>
-              </select>
+                onChange={(v) => setFrequency(v as 'immediate' | 'daily' | 'weekly')}
+              />
             </div>
           </div>
           <DialogFooter className="border-t border-zinc-800 bg-zinc-950/50 p-6 sm:justify-end gap-3">
@@ -1162,7 +1225,7 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
               This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="border-t border-zinc-800 bg-zinc-950/50 p-6 sm:justify-end gap-3 mt-6">
+          <DialogFooter className="border-t border-zinc-800 bg-zinc-950/50 p-6 sm:justify-end gap-3 mt-2 sm:mt-6">
             <button
               onClick={() => setDeleteTarget(null)}
               disabled={isDeleting}

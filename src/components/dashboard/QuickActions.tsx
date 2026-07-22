@@ -311,7 +311,8 @@ export function QuickActions() {
             className="flex items-center justify-center gap-2 min-h-11 md:h-9 px-4 rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm hover:text-zinc-100 hover:bg-zinc-700 transition-colors duration-150"
           >
             <Plus className="h-4 w-4" strokeWidth={1.5} />
-            <span>Add domain</span>
+            <span className="hidden sm:inline">Add domain</span>
+            <span className="sm:hidden">Add</span>
           </button>
 
           <button

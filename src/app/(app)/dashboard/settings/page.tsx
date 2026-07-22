@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { User, Bell, Shield, Download, Trash2, Save, Check, LogOut, ArrowLeft } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { User, Bell, Shield, Download, Trash2, Save, Check, LogOut, ArrowLeft, ChevronUp, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -15,7 +15,7 @@ import { useToast } from "@/components/ui/Toast"
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-[4px]">
       <div className="px-5 py-3 border-b border-zinc-800">
         <h2 className="text-sm font-medium text-zinc-200">{title}</h2>
       </div>
@@ -27,9 +27,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <div className="flex-shrink-0">
+      <div className="flex-1 min-w-0 pr-2">
         <p className="text-sm text-zinc-200">{label}</p>
-        {sub && <p className="text-xs text-zinc-600 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-zinc-600 mt-0.5 leading-relaxed">{sub}</p>}
       </div>
       <div className="flex-shrink-0">{children}</div>
     </div>
@@ -96,6 +96,75 @@ function DeleteAccountModal({ isOpen, onClose, onConfirm, isDeleting }: { isOpen
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── Custom Dropdown ──────────────────────────────────────────────────────────
+
+const CHECK_INTERVAL_OPTIONS = [
+  { value: "1h", label: "Every hour" },
+  { value: "6h", label: "Every 6 hours" },
+  { value: "24h", label: "Once daily" },
+  { value: "48h", label: "Every 2 days" },
+] as const
+
+function CheckIntervalDropdown({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onClickOutside)
+    return () => document.removeEventListener("mousedown", onClickOutside)
+  }, [])
+
+  const current = CHECK_INTERVAL_OPTIONS.find(o => o.value === value) ?? CHECK_INTERVAL_OPTIONS[1]
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-between w-36 h-8 px-3 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 hover:border-zinc-600 transition-colors duration-150 whitespace-nowrap"
+      >
+        <span>{current.label}</span>
+        {open
+          ? <ChevronUp className="h-4 w-4 text-zinc-500 flex-shrink-0" strokeWidth={1.5} />
+          : <ChevronDown className="h-4 w-4 text-zinc-500 flex-shrink-0" strokeWidth={1.5} />
+        }
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-900 border border-zinc-700 rounded-[4px] shadow-xl z-50 overflow-hidden py-1">
+          {CHECK_INTERVAL_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChange(opt.value)
+                setOpen(false)
+              }}
+              className={cn(
+                "w-full text-left px-3 py-2 text-sm transition-colors",
+                opt.value === value
+                  ? "text-cyan-400 bg-zinc-800/60"
+                  : "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -246,7 +315,7 @@ export default function SettingsPage() {
             onClick={handleSave}
             disabled={saving}
             className={cn(
-              "inline-flex items-center gap-2 h-9 px-4 rounded-[4px] text-sm font-medium transition-all duration-150 active:scale-[0.98]",
+              "inline-flex items-center gap-2 h-9 px-3 sm:px-4 rounded-[4px] text-sm font-medium transition-all duration-150 active:scale-[0.98]",
               saved
                 ? "bg-green-400/20 border border-green-800 text-green-400"
                 : "bg-cyan-400 text-zinc-950 hover:bg-cyan-300",
@@ -254,7 +323,16 @@ export default function SettingsPage() {
             )}
           >
             {saved ? <Check className="h-4 w-4" strokeWidth={1.5} /> : <Save className="h-4 w-4" strokeWidth={1.5} />}
-            {saved ? "Saved!" : saving ? "Saving..." : "Save changes"}
+            {saved ? (
+              "Saved!"
+            ) : saving ? (
+              "Saving..."
+            ) : (
+              <>
+                <span className="sm:hidden">Save</span>
+                <span className="hidden sm:inline">Save changes</span>
+              </>
+            )}
           </button>
         )}
       </div>
@@ -301,7 +379,7 @@ export default function SettingsPage() {
             type="text"
             value={defaultTlds}
             onChange={e => setDefaultTlds(e.target.value)}
-            className="h-8 px-2.5 w-48 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 font-mono focus:outline-none focus:border-zinc-600 transition-colors"
+            className="h-8 px-2.5 w-32 sm:w-48 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-100 font-mono focus:outline-none focus:border-zinc-600 transition-colors"
           />
         </Field>
         <Field label="Auto-check watchlist" sub={plan === "pro" ? "Automatically re-check availability on a schedule" : "Automatically re-check availability on a schedule (Pro only)"}>
@@ -312,16 +390,7 @@ export default function SettingsPage() {
         </Field>
         {autoCheck && (
           <Field label="Check interval" sub="How often to check availability">
-            <select
-              value={checkInterval}
-              onChange={e => setCheckInterval(e.target.value)}
-              className="h-8 px-2 bg-zinc-950 border border-zinc-700 rounded-[4px] text-sm text-zinc-300 focus:outline-none focus:border-zinc-600"
-            >
-              <option value="1h">Every hour</option>
-              <option value="6h">Every 6 hours</option>
-              <option value="24h">Once daily</option>
-              <option value="48h">Every 2 days</option>
-            </select>
+            <CheckIntervalDropdown value={checkInterval} onChange={setCheckInterval} />
           </Field>
         )}
       </Section>

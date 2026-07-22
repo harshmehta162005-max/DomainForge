@@ -69,8 +69,8 @@ function NavContent({
               transition={{ duration: 0.15 }}
               className="flex items-center gap-2 overflow-hidden"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
-              <span className="text-sm font-semibold tracking-tight text-zinc-100 whitespace-nowrap">
+              <span className="h-2 w-2 sm:h-1.5 sm:w-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
+              <span className="text-base sm:text-sm font-semibold tracking-tight text-zinc-100 whitespace-nowrap">
                 Domain<span className="text-cyan-400">Forge</span>
               </span>
             </motion.div>

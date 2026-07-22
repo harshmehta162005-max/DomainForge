@@ -103,7 +103,7 @@ function Section({
   headerRight?: React.ReactNode
 }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-[4px] overflow-hidden">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-[4px]">
       <div className="px-5 py-3 border-b border-zinc-800 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-medium text-zinc-200">{title}</h2>
@@ -250,7 +250,6 @@ export function NotificationsForm() {
         subtitle="Choose which events trigger email notifications"
         headerRight={
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500">{isMasterOff ? "All off" : "Master"}</span>
             <Toggle
               checked={s.notif_master}
               onChange={handleMaster}
@@ -307,7 +306,7 @@ export function NotificationsForm() {
         subtitle="How often enabled alerts are batched and sent to your inbox"
       >
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
             {(["immediate", "daily", "weekly"] as const).map((f) => {
               const Icon = f === "immediate" ? Zap : f === "daily" ? Mail : CalendarDays
               const desc = f === "immediate"
