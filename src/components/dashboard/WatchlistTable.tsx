@@ -892,20 +892,22 @@ export function WatchlistTable({ items, isLoading = false }: WatchlistTableProps
 
         {/* Bulk actions */}
         {selected.size > 0 && (
-          <div className="flex items-center gap-2 px-2 py-1 bg-zinc-800 rounded-[4px] border border-zinc-700">
+          <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 sm:px-2 sm:py-1 bg-zinc-800 rounded-[4px] border border-zinc-700 w-full sm:w-auto">
             <span className="text-xs text-zinc-400">{selected.size} selected</span>
-            <button
-              onClick={handleBulkRemoveClick}
-              className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
-            >
-              Remove
-            </button>
-            <button
-              onClick={handleBulkExport}
-              className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
-            >
-              Export
-            </button>
+            <div className="flex items-center gap-4 sm:gap-2">
+              <button
+                onClick={handleBulkRemoveClick}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+              >
+                Remove
+              </button>
+              <button
+                onClick={handleBulkExport}
+                className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+              >
+                Export
+              </button>
+            </div>
           </div>
         )}
 

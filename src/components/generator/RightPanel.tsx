@@ -404,13 +404,13 @@ function IdleState({ onPickPrompt, categories }: IdleStateProps) {
 
           <motion.p
             variants={fadeUp}
-            className="text-sm text-zinc-400 leading-relaxed max-w-xs"
+            className="hidden sm:block text-sm text-zinc-400 leading-relaxed max-w-xs"
           >
             Describe your project on the left. Let AI craft creative, available
             domain names tailored to your vision.
           </motion.p>
 
-          <motion.p variants={fadeUp} className="text-xs text-zinc-600 mt-4 font-mono">
+          <motion.p variants={fadeUp} className="hidden sm:block text-xs text-zinc-600 mt-4 font-mono">
             Ctrl+Enter to generate
           </motion.p>
         </motion.div>

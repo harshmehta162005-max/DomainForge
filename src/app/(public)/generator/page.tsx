@@ -263,9 +263,20 @@ export default function GeneratorPage() {
                 setSidebarOpen(p => !p)
               }
             }}
-            className="h-8 w-8 flex items-center justify-center rounded-[4px] bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-100 transition-colors duration-150 lg:hidden"
+            className={cn(
+              "h-8 flex items-center justify-center rounded-[4px] bg-zinc-800 border border-zinc-700 transition-colors duration-150",
+              isGenerating ? "w-8 lg:w-auto lg:px-3 text-red-400 hover:text-red-300 hover:bg-red-950/30 hover:border-red-900/50" : "w-8 text-zinc-400 hover:text-zinc-100",
+              !isGenerating && "lg:hidden"
+            )}
           >
-            {isGenerating ? <X className="h-4 w-4 text-red-400" strokeWidth={1.5} /> : <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />}
+            {isGenerating ? (
+              <>
+                <X className={cn("h-4 w-4", "lg:mr-1.5")} strokeWidth={1.5} />
+                <span className="hidden lg:inline text-sm font-medium">Cancel request</span>
+              </>
+            ) : (
+              <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+            )}
           </button>
         </div>
       </header>

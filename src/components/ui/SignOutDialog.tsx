@@ -3,14 +3,6 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
 import { LogOut } from "lucide-react"
 
 interface SignOutDialogProps {
@@ -21,6 +13,8 @@ interface SignOutDialogProps {
 export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const router = useRouter()
   const [isSigningOut, setIsSigningOut] = useState(false)
+
+  if (!open) return null
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
@@ -37,34 +31,34 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl p-0 overflow-hidden sm:rounded-xl max-w-sm">
-        <DialogHeader className="p-6 pb-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-10 w-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0">
-              <LogOut className="h-5 w-5 text-zinc-400" strokeWidth={1.5} />
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-[8px] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="px-6 py-5 border-b border-zinc-800 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+            <LogOut className="h-5 w-5 text-red-500" strokeWidth={1.5} />
           </div>
-          <DialogTitle className="text-xl font-semibold text-zinc-100">
-            Sign out
-          </DialogTitle>
-          <DialogDescription className="text-zinc-400 mt-2 text-sm leading-relaxed">
+          <div>
+            <h3 className="text-lg font-medium text-zinc-100">Sign out</h3>
+            <p className="text-sm text-zinc-500 mt-1">See you soon!</p>
+          </div>
+        </div>
+        <div className="px-6 py-5">
+          <p className="text-sm text-zinc-300">
             Are you sure you want to sign out of DomainForge? You'll need to log in again to access your watchlist and settings.
-          </DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter className="m-0 border-t border-zinc-800 bg-zinc-950/50 px-6 py-4 flex flex-row gap-3 sm:justify-end">
+          </p>
+        </div>
+        <div className="px-6 py-4 bg-zinc-950/50 border-t border-zinc-800 flex items-center justify-end gap-3">
           <button
             onClick={() => onOpenChange(false)}
             disabled={isSigningOut}
-            className="h-9 px-4 rounded-[4px] text-sm font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-colors disabled:opacity-50"
+            className="h-9 px-4 rounded-[4px] text-sm font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="h-9 px-5 rounded-[4px] text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="h-9 px-5 rounded-[4px] bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 shadow-[0_0_15px_rgba(239,68,68,0.1)] active:scale-95"
           >
             {isSigningOut ? (
               <>
@@ -73,8 +67,8 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
               </>
             ) : "Sign out"}
           </button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   )
 }

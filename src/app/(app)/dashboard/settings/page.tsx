@@ -10,6 +10,7 @@ import { ClassicLoader } from "@/components/ui/ClassicLoader"
 import { ProUpgradeDialog } from "@/components/ui/ProUpgradeDialog"
 import { NotificationsForm } from "@/components/profile/NotificationsForm"
 import { useToast } from "@/components/ui/Toast"
+import { SignOutDialog } from "@/components/ui/SignOutDialog"
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -180,6 +181,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false)
   const [proDialogOpen, setProDialogOpen] = useState(false)
   const [proDialogFeature, setProDialogFeature] = useState("")
 
@@ -360,7 +362,7 @@ export default function SettingsPage() {
         <div className="border-t border-zinc-800" />
         <Field label="Sign out" sub="Sign out of your account on this device">
           <button
-            onClick={handleSignOut}
+            onClick={() => setIsSignOutModalOpen(true)}
             className="inline-flex items-center gap-2 h-8 px-3 rounded-[4px] bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-red-400 hover:border-red-900 transition-colors duration-150"
           >
             <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -443,6 +445,11 @@ export default function SettingsPage() {
         isDeleting={isDeleting}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
+      />
+
+      <SignOutDialog
+        open={isSignOutModalOpen}
+        onOpenChange={setIsSignOutModalOpen}
       />
 
       <ProUpgradeDialog
