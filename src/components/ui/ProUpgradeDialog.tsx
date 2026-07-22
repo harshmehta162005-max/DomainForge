@@ -40,7 +40,7 @@ export function ProUpgradeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl p-0 overflow-hidden sm:rounded-xl max-w-md [&>button]:cursor-pointer">
+      <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl p-0 overflow-hidden sm:rounded-xl w-[90vw] sm:w-full max-w-[340px] sm:max-w-md [&>button]:cursor-pointer">
         {/* Top gradient accent */}
         <div className="h-1 w-full bg-gradient-to-r from-cyan-500 via-cyan-400 to-cyan-600" />
 

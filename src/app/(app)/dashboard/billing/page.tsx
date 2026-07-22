@@ -39,7 +39,7 @@ export default function Pricing() {
   };
 
 	return (
-		<section className="relative h-full min-h-[600px] flex flex-col justify-center overflow-hidden py-8">
+		<section className="relative min-h-full flex flex-col justify-start md:justify-center overflow-x-hidden py-8">
 			<div
 				className={cn(
 					'absolute inset-0 size-full pointer-events-none',
@@ -73,14 +73,14 @@ export default function Pricing() {
 						viewport={{ once: true }}
 						className="mx-auto w-full max-w-2xl space-y-2 mt-4"
 					>	
-						<div className="grid md:grid-cols-2 bg-zinc-950/50 relative border border-zinc-800 p-4 rounded-xl backdrop-blur-sm">
-					<PlusIcon className="absolute -top-3 -left-3 size-6 text-zinc-700" />
-					<PlusIcon className="absolute -top-3 -right-3 size-6 text-zinc-700" />
-					<PlusIcon className="absolute -bottom-3 -left-3 size-6 text-zinc-700" />
-					<PlusIcon className="absolute -right-3 -bottom-3 size-6 text-zinc-700" />
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-0 bg-transparent md:bg-zinc-950/50 relative md:border md:border-zinc-800 p-0 md:p-4 md:rounded-xl backdrop-blur-sm">
+					<PlusIcon className="hidden md:block absolute -top-3 -left-3 size-6 text-zinc-700" />
+					<PlusIcon className="hidden md:block absolute -top-3 -right-3 size-6 text-zinc-700" />
+					<PlusIcon className="hidden md:block absolute -bottom-3 -left-3 size-6 text-zinc-700" />
+					<PlusIcon className="hidden md:block absolute -right-3 -bottom-3 size-6 text-zinc-700" />
 
 					{/* Monthly card */}
-					<div className="w-full px-4 pt-3 pb-3">
+					<div className="w-full p-4 md:px-4 md:pt-3 md:pb-3 border border-zinc-800 md:border-none rounded-xl md:rounded-none bg-zinc-950/80 md:bg-transparent">
 						<div className="space-y-1">
 							<div className="flex items-center justify-between">
 								<h3 className="leading-none font-semibold text-zinc-200">Monthly</h3>

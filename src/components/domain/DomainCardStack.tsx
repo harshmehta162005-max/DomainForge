@@ -281,20 +281,20 @@ export default function DomainCardStack({ suggestions, onSave, initialDomain, in
       {/* Left / Right nav */}
       <motion.button
         onClick={moveToStart}
-        className="absolute left-8 top-1/2 -translate-y-1/2 p-4 rounded-full bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700 backdrop-blur-sm z-20"
+        className="absolute left-2 sm:left-8 top-[65%] sm:top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700 backdrop-blur-sm z-20"
         whileHover={{ scale: 1.1, x: -5 }}
         whileTap={{ scale: 0.9 }}
       >
-        <ChevronLeft className="w-6 h-6 text-white" />
+        <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
       </motion.button>
 
       <motion.button
         onClick={moveToEnd}
-        className="absolute right-8 top-1/2 -translate-y-1/2 p-4 rounded-full bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700 backdrop-blur-sm z-20"
+        className="absolute right-2 sm:right-8 top-[65%] sm:top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700 backdrop-blur-sm z-20"
         whileHover={{ scale: 1.1, x: 5 }}
         whileTap={{ scale: 0.9 }}
       >
-        <ChevronRight className="w-6 h-6 text-white" />
+        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
       </motion.button>
 
       {/* Card Stack */}
@@ -356,7 +356,7 @@ export default function DomainCardStack({ suggestions, onSave, initialDomain, in
       </div>
 
       {/* Progress dots */}
-      <div className="absolute top-24 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+      <div className="absolute top-24 left-1/2 -translate-x-1/2 hidden sm:flex gap-2 z-20">
         {suggestions.map((_, i) => (
           <motion.div
             key={i}
