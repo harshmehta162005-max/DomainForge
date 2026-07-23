@@ -1,14 +1,15 @@
 import { getServiceClient } from "@/lib/supabase/service"
+import { redis } from "@/lib/redis"
 import type { AvailabilityResult, DomainSuggestion } from "@/types/domain"
 
 // ─── TTL constants ────────────────────────────────────────────────────────────
 
-const CACHE_TTL_AVAILABLE_MS = 5 * 60 * 1000        // 5 min — per CLAUDE.md
-const CACHE_TTL_TAKEN_MS = 24 * 60 * 60 * 1000      // 24 hr — taken domains rarely flip
-const CACHE_TTL_UNKNOWN_MS = 60 * 1000               // 1 min — unknown = retry sooner
-const CACHE_TTL_GENERATION_MS = 60 * 60 * 1000       // 1 hr — per CLAUDE.md
+const CACHE_TTL_AVAILABLE_S  = 5 * 60              // 5 min   — available domains
+const CACHE_TTL_TAKEN_S      = 24 * 60 * 60        // 24 hr   — taken domains rarely flip
+const CACHE_TTL_UNKNOWN_S    = 60                   // 1 min   — unknown = retry sooner
+const CACHE_TTL_GENERATION_S = 60 * 60             // 1 hr    — AI generation cache
 
-// ─── Helper: safe service client ─────────────────────────────────────────────
+// ─── Helper: safe Supabase service client ─────────────────────────────────────
 
 function safeServiceClient() {
   try {
@@ -18,15 +19,28 @@ function safeServiceClient() {
   }
 }
 
-// ─── Domain Availability Cache (table: domain_cache) ─────────────────────────
+// ─── Domain Availability Cache ────────────────────────────────────────────────
 
 /**
- * Get cached RDAP availability result from Supabase.
- * Returns null on cache miss, expiry, or any DB error (non-fatal).
+ * Get cached RDAP availability result.
+ * Strategy: Redis first (fast) → Supabase fallback (reliable) → null (cache miss).
  */
 export async function getCachedAvailability(
   domain: string,
 ): Promise<AvailabilityResult | null> {
+  // ── 1. Try Redis ──────────────────────────────────────────────────────────
+  if (redis) {
+    try {
+      const cached = await redis.get<AvailabilityResult>(`avail:${domain}`)
+      if (cached) {
+        return { ...cached, fromCache: true }
+      }
+    } catch (e) {
+      console.warn("[Redis] getCachedAvailability failed — falling back to Supabase:", e)
+    }
+  }
+
+  // ── 2. Fallback: Supabase domain_cache ────────────────────────────────────
   const db = safeServiceClient()
   if (!db) return null
 
@@ -35,7 +49,7 @@ export async function getCachedAvailability(
       .from("domain_cache")
       .select("available, status, checked_at, expires_at, rdap_tier, is_parked")
       .eq("domain", domain)
-      .gt("expires_at", new Date().toISOString()) // only fresh rows
+      .gt("expires_at", new Date().toISOString())
       .maybeSingle()
 
     if (error || !data) return null
@@ -57,30 +71,39 @@ export async function getCachedAvailability(
       isParked: row.is_parked ?? false,
     }
   } catch {
-    // Never crash the calling code on cache failure
     return null
   }
 }
 
 /**
- * Write RDAP availability result to Supabase cache.
- * Non-fatal — silently ignores any DB errors.
+ * Write RDAP availability result to cache.
+ * Writes to Redis (if available) AND Supabase in parallel. Non-fatal.
  */
 export async function setCachedAvailability(
   domain: string,
   result: AvailabilityResult,
 ): Promise<void> {
+  const ttlSeconds =
+    result.status === "available"
+      ? CACHE_TTL_AVAILABLE_S
+      : result.status === "taken" || result.status === "parked"
+        ? CACHE_TTL_TAKEN_S
+        : CACHE_TTL_UNKNOWN_S
+
+  const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString()
+
+  // ── 1. Write to Redis ─────────────────────────────────────────────────────
+  if (redis) {
+    try {
+      await redis.set(`avail:${domain}`, result, { ex: ttlSeconds })
+    } catch (e) {
+      console.warn("[Redis] setCachedAvailability write failed:", e)
+    }
+  }
+
+  // ── 2. Write to Supabase (always, as durable backup) ──────────────────────
   const db = safeServiceClient()
   if (!db) return
-
-  const ttl =
-    result.status === "available"
-      ? CACHE_TTL_AVAILABLE_MS
-      : result.status === "taken" || result.status === "parked"
-        ? CACHE_TTL_TAKEN_MS
-        : CACHE_TTL_UNKNOWN_MS
-
-  const expiresAt = new Date(Date.now() + ttl).toISOString()
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,15 +125,26 @@ export async function setCachedAvailability(
   }
 }
 
-// ─── Generation Cache (table: generation_cache) ───────────────────────────────
+// ─── Generation Cache ─────────────────────────────────────────────────────────
 
 /**
- * Get cached generation suggestions by prompt hash.
- * Returns null on cache miss, expiry, or any DB error.
+ * Get cached AI generation suggestions.
+ * Strategy: Redis first → Supabase fallback → null.
  */
 export async function getCachedGeneration(
   cacheKey: string,
 ): Promise<DomainSuggestion[] | null> {
+  // ── 1. Try Redis ──────────────────────────────────────────────────────────
+  if (redis) {
+    try {
+      const cached = await redis.get<DomainSuggestion[]>(`gen:${cacheKey}`)
+      if (cached) return cached
+    } catch (e) {
+      console.warn("[Redis] getCachedGeneration failed — falling back to Supabase:", e)
+    }
+  }
+
+  // ── 2. Fallback: Supabase generation_cache ────────────────────────────────
   const db = safeServiceClient()
   if (!db) return null
 
@@ -132,17 +166,27 @@ export async function getCachedGeneration(
 }
 
 /**
- * Write generation suggestions to Supabase cache (1-hour TTL).
- * Non-fatal — silently ignores any DB errors.
+ * Write AI generation suggestions to cache.
+ * Writes to Redis (if available) AND Supabase in parallel. Non-fatal.
  */
 export async function setCachedGeneration(
   cacheKey: string,
   suggestions: DomainSuggestion[],
 ): Promise<void> {
+  const expiresAt = new Date(Date.now() + CACHE_TTL_GENERATION_S * 1000).toISOString()
+
+  // ── 1. Write to Redis ─────────────────────────────────────────────────────
+  if (redis) {
+    try {
+      await redis.set(`gen:${cacheKey}`, suggestions, { ex: CACHE_TTL_GENERATION_S })
+    } catch (e) {
+      console.warn("[Redis] setCachedGeneration write failed:", e)
+    }
+  }
+
+  // ── 2. Write to Supabase ──────────────────────────────────────────────────
   const db = safeServiceClient()
   if (!db) return
-
-  const expiresAt = new Date(Date.now() + CACHE_TTL_GENERATION_MS).toISOString()
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
