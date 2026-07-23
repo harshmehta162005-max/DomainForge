@@ -7,6 +7,7 @@ import { namecheapUrl, godaddyUrl } from "@/lib/utils"
 import { getServiceClient } from "@/lib/supabase/service"
 import { searchUSPTOTrademarks, computeUsptoConflictBonus } from "@/lib/trademark/markerapi"
 import { env } from "@/lib/env"
+import { redis } from "@/lib/redis"
 import type { DomainAnalysis, DomainTldResult } from "@/types/domain"
 
 // ─── Zod schema ───────────────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ const ALT_TLDS = [".com", ".io", ".ai", ".co", ".dev", ".net", ".app"]
 // ─── Cache TTL: 24 hours for analysis results ─────────────────────────────────
 
 const ANALYSIS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const ANALYSIS_CACHE_TTL_S  = 24 * 60 * 60
 
 // ─── Safely extract JSON from LLM output ─────────────────────────────────────
 
@@ -46,13 +48,24 @@ function parseJsonSafe<T>(raw: string): T | null {
   }
 }
 
-// ─── Cache helpers ─────────────────────────────────────────────────────────────
+// ─── Cache helpers (Redis → Supabase fallback) ────────────────────────────────
 
 function makeAnalysisCacheKey(baseName: string, categories: string[]): string {
   return `analyze_v5_${baseName.toLowerCase()}_${[...categories].sort().join("_")}`
 }
 
 async function getCachedAnalysis(cacheKey: string): Promise<DomainAnalysis | null> {
+  // 1. Try Redis first
+  if (redis) {
+    try {
+      const cached = await redis.get<DomainAnalysis>(`analysis:${cacheKey}`)
+      if (cached) return cached
+    } catch (e) {
+      console.warn("[Redis] getCachedAnalysis failed — falling back to Supabase:", e)
+    }
+  }
+
+  // 2. Fallback: Supabase
   try {
     const db = getServiceClient()
     const { data } = await db
@@ -70,6 +83,16 @@ async function getCachedAnalysis(cacheKey: string): Promise<DomainAnalysis | nul
 }
 
 async function setCachedAnalysis(cacheKey: string, analysis: DomainAnalysis): Promise<void> {
+  // 1. Write to Redis
+  if (redis) {
+    try {
+      await redis.set(`analysis:${cacheKey}`, analysis, { ex: ANALYSIS_CACHE_TTL_S })
+    } catch (e) {
+      console.warn("[Redis] setCachedAnalysis write failed:", e)
+    }
+  }
+
+  // 2. Write to Supabase (always, as durable backup)
   try {
     const db = getServiceClient()
     const expiresAt = new Date(Date.now() + ANALYSIS_CACHE_TTL_MS).toISOString()
