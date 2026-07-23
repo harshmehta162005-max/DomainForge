@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/server"
 import { SignOutButton } from "./SignOutButton"
 import { NotificationBell } from "./NotificationBell"
@@ -42,7 +43,7 @@ export async function Header({ showNewSearch = false }: HeaderProps) {
           href="/"
           className="flex items-center gap-2 text-zinc-100 hover:text-white transition-colors duration-150"
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+          <Image src="/logo-new.png" alt="DomainForge Logo" width={32} height={32} className="h-7 w-auto flex-shrink-0 object-contain" priority />
           <span className="text-sm font-semibold tracking-tight">
             Domain<span className="text-cyan-400">Forge</span>
           </span>

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/server"
 import { SignOutButton } from "./SignOutButton"
 
@@ -23,9 +24,12 @@ export async function LandingNav() {
 
   return (
     <nav className="relative z-20 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4">
-      <span className="text-xl font-bold tracking-tight text-white">
-        Domain<span className="text-orange-400">Forge</span>
-      </span>
+      <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+        <Image src="/logo-new.png" alt="DomainForge Logo" width={64} height={64} className="h-10 w-auto flex-shrink-0 object-contain" priority />
+        <span className="text-2xl font-bold tracking-tight text-white">
+          Domain<span className="text-cyan-400">Forge</span>
+        </span>
+      </Link>
 
       <div className="flex items-center gap-3">
         {user ? (

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -57,7 +58,7 @@ function NavContent({
   return (
     <>
       {/* Logo row */}
-      <div className="h-14 flex items-center justify-between px-3 border-b border-zinc-800 flex-shrink-0">
+      <div className={cn("h-14 flex items-center justify-between border-b border-zinc-800 flex-shrink-0", (!collapsed || isMobile) ? "px-3" : "px-2")}>
         <AnimatePresence mode="wait">
           {/* On mobile the drawer is always expanded; on desktop respect `collapsed` */}
           {(!collapsed || isMobile) && (
@@ -67,23 +68,24 @@ function NavContent({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 overflow-hidden"
+              className="flex items-center gap-3 overflow-hidden"
             >
-              <span className="h-2 w-2 sm:h-1.5 sm:w-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
-              <span className="text-base sm:text-sm font-semibold tracking-tight text-zinc-100 whitespace-nowrap">
+              <Image src="/logo-new.png" alt="DomainForge Logo" width={64} height={64} className="h-12 w-auto flex-shrink-0 object-contain scale-110" priority />
+              <span className="text-2xl sm:text-xl font-bold tracking-tight text-zinc-100 whitespace-nowrap">
                 Domain<span className="text-cyan-400">Forge</span>
               </span>
             </motion.div>
           )}
           {collapsed && !isMobile && (
             <motion.div
-              key="dot"
+              key="icon"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
+              className="flex items-center justify-center"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 block" />
+              <Image src="/logo-new.png" alt="DomainForge Logo" width={64} height={64} className="h-12 w-auto block flex-shrink-0 object-contain scale-150 -ml-1" priority />
             </motion.div>
           )}
         </AnimatePresence>
@@ -218,7 +220,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen = false, onMobileClose
     <>
       {/* ── Desktop rail: inline flex column, hidden on mobile ──────────── */}
       <motion.aside
-        animate={{ width: collapsed ? 56 : 240 }}
+        animate={{ width: collapsed ? 72 : 240 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="hidden md:flex flex-shrink-0 flex-col bg-zinc-900 border-r border-zinc-800 overflow-hidden relative z-10"
         style={{ willChange: "width" }}

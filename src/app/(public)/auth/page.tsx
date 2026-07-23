@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Eye, EyeOff, Terminal, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 // ─── Terminal Demo Lines (left panel) ────────────────────────────────────────
@@ -37,9 +38,9 @@ function TerminalPanel() {
   return (
     <div className="hidden lg:flex flex-col justify-between h-full p-12 bg-zinc-950 border-r border-zinc-800">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2 text-zinc-100">
-        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-        <span className="text-sm font-semibold tracking-tight">
+      <Link href="/" className="flex items-center gap-2 text-zinc-100 hover:text-white transition-colors -ml-2">
+        <Image src="/logo-new.png" alt="DomainForge Logo" width={90} height={90} className="h-16 w-auto object-contain scale-110" priority />
+        <span className="text-3xl font-bold tracking-tight">
           Domain<span className="text-cyan-400">Forge</span>
         </span>
       </Link>
@@ -88,7 +89,7 @@ function TerminalPanel() {
 
 type AuthMode = "signin" | "signup"
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -194,12 +195,12 @@ export default function AuthPage() {
         {/* Glass card */}
         <div className="relative z-10 w-full max-w-sm rounded-3xl bg-gradient-to-br from-white/10 to-[#121212] backdrop-blur-sm shadow-2xl p-8 flex flex-col items-center border border-white/5">
 
-          {/* Logo circle */}
+          {/* Logo */}
           <Link
             href="/"
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10 mb-4 shadow-lg hover:bg-white/15 transition-colors"
+            className="flex items-center justify-center -mt-6 mb-2 transition-transform hover:scale-105 duration-200"
           >
-            <span className="h-2 w-2 rounded-full bg-cyan-400" />
+            <Image src="/logo-new.png" alt="DomainForge Logo" width={140} height={140} className="h-32 w-auto object-contain scale-110" priority />
           </Link>
 
           {/* Title */}
@@ -308,5 +309,17 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   )
 }
